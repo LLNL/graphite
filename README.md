@@ -13,7 +13,7 @@ A repository for implementing graph network models based on atomic structures.
     - [*Benchmarking Graph Neural Networks*][edge-gated conv paper]
 - NequIP (code implementation adopted from `e3nn`)
     - [*E(3)-Equivariant Graph Neural Networks for Data-Efficient and Accurate Interatomic Potentials*][NequIP paper]
-- **Denoising NequIP** (our work)
+- **Denoising NequIP** (our work, see demo [here](notebooks/denoiser/training-and-inference.ipynb))
     - [*An iterative unbiased geometric approach to identifying crystalline order and disorder via denoising score function model*][denoising paper]
 - MeshGraphNet
     - [*Learning Mesh-Based Simulation with Graph Networks*][mgn_paper]
