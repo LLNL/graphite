@@ -1,7 +1,7 @@
 import torch
 
 
-mask2index = lambda mask: torch.nonzero(mask).flatten()
+mask2index = lambda mask: torch.nonzero(mask)
 
 
 def index2mask(idx_arr, n):

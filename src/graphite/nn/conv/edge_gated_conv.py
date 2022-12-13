@@ -33,7 +33,7 @@ class EGConv(MessagePassing):
 
         # Calculate gated edges
         sigma_e = self.sigma(edge_attr)
-        e_sum   = scatter(src=sigma_e, index=i , dim=0)
+        e_sum   = scatter(src=sigma_e, index=i, dim=0)
         e_gated = sigma_e / (e_sum[i] + self.eps)
 
         # Update the nodes (this utilizes the gated edges)

@@ -7,6 +7,14 @@ from ase.neighborlist import primitive_neighbor_list
 
 
 class RadiusGraph_ase(BaseTransform):
+    """Similar to PyG's RadiusGraph, but implemented with ASE's cell list algorithm.
+
+    Only works for a single data object, not batches of data.
+
+    Args:
+        cutoff (float): Cutoff distance within which pairs of nodes would
+            be considered connected.
+    """
     def __init__(self, cutoff):
         self.cutoff = cutoff
     

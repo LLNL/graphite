@@ -6,6 +6,9 @@ class RadiusGraph(BaseTransform):
     r"""Creates edges based on node positions :obj:`pos` to all points within a
     given distance (functional name: :obj:`radius_graph`).
 
+    This transform class is a slighly modified version of PyG's RadiusGraph.
+    It additionally calculates edge vectors as `edge_attr`.
+
     Args:
         r (float): The distance.
         loop (bool, optional): If :obj:`True`, the graph will contain

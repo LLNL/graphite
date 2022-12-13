@@ -7,6 +7,7 @@ __all__ = [
     'index2mask',
     'np_groupby',
     'np_scatter',
+    'arg_same_rows',
     'encode_labels',
     'summary',
 ]

@@ -11,7 +11,7 @@ class EGCNN(torch.nn.Module):
     This version is intended for spectroscopy prediction of Cu aqua complexes.
     """
     def __init__(self, dim=100, num_interactions=6, num_species=3, cutoff=6.0):
-        super(EGCNN, self).__init__()
+        super().__init__()
 
         self.dim              = dim
         self.num_interactions = num_interactions
