@@ -1,9 +1,9 @@
 import torch
-from torch.nn   import Embedding, ModuleList
+import torch.nn as nn
 
 from e3nn       import o3
 from e3nn.nn    import Gate
-from e3nn.math  import soft_one_hot_linspace
+
 from ..conv.e3nn_nequip_interaction import Interaction
 
 
@@ -19,7 +19,7 @@ def tp_path_exists(irreps_in1, irreps_in2, ir_out):
     return False
 
 
-class Compose(torch.nn.Module):
+class Compose(nn.Module):
     def __init__(self, first, second):
         super().__init__()
         self.first = first
@@ -32,60 +32,60 @@ class Compose(torch.nn.Module):
         return self.second(x)
 
 
-class NequIP(torch.nn.Module):
+class NequIP(nn.Module):
     """NequIP model from https://arxiv.org/pdf/2101.03164.pdf.
 
     Args:
-        irreps_in (Irreps or str): Irreps of input node features. Must be scalars.
-        irreps_node (Irreps or str): Irreps of node attributes (not updated throughout model). Must be scalars.
+        init_embed (function): Initial embedding function/class for nodes and edges.
+        irreps_node_x (Irreps or str): Irreps of input node features.
+        irreps_node_z (Irreps or str): Irreps of auxiliary node features (not updated throughout model).
         irreps_hidden (Irreps or str): Irreps of node features at hidden layers.
         irreps_edge (Irreps or str): Irreps of spherical_harmonics.
         irreps_out (Irreps or str): Irreps of output node features.
         num_convs (int): Number of interaction/conv layers. Must be more than 1.
-        radial_neurons (list of ints): Number of neurons per layers in the FC network that learn from bond distances.
+        radial_neurons (list of ints): Number of neurons per layers in the MLP that learns from bond distances.
             For first and hidden layers, not the output layer.
-        num_species (int): Number of elements/species in the atomic data.
         max_radius (float): Cutoff radius used during graph construction.
         num_neighbors (float): Typical or average node degree (used for normalization).
+    
+    Notes:
+        The `init_embed` function/class must take a PyG graph object `data` as input and output the same object
+        with the additional fields `h_node_x`, `h_node_z`, and `h_edge` that correspond to the node, auxilliary node,
+        and edge embeddings.
     """
     def __init__(self,
-        irreps_in      = '8x0e',
-        irreps_node    = '8x0e',
+        init_embed,
+        irreps_node_x  = '8x0e',
+        irreps_node_z  = '8x0e',
         irreps_hidden  = '64x0e + 32x1e + 32x2e',
         irreps_edge    = '1x0e + 1x1e + 1x2e',
         irreps_out     = '1x1e',
         num_convs      = 3,
         radial_neurons = [16, 64],
-        num_species    = 1,
-        max_radius     = 3.0,
         num_neighbors  = 12,
     ):
         super().__init__()
-
-        self.irreps_in      = o3.Irreps(irreps_in)
+        self.init_embed     = init_embed
+        self.irreps_node_x  = o3.Irreps(irreps_node_x)
+        self.irreps_node_z  = o3.Irreps(irreps_node_z)
         self.irreps_hidden  = o3.Irreps(irreps_hidden)
         self.irreps_out     = o3.Irreps(irreps_out)
-        self.irreps_node    = o3.Irreps(irreps_node)
         self.irreps_edge    = o3.Irreps(irreps_edge)
         self.num_convs      = num_convs
-        self.max_radius     = max_radius
-        self.num_edge_basis = radial_neurons[0]
-        self.embed_node_x   = Embedding(num_species, self.irreps_in.dim)
-        self.embed_node_z   = Embedding(num_species, self.irreps_node.dim)
 
-        act_scalars = {1: torch.nn.functional.silu, -1: torch.tanh}
+        act_scalars = {1: nn.functional.silu, -1: torch.tanh}
         act_gates   = {1: torch.sigmoid, -1: torch.tanh}
 
-        irreps = self.irreps_in
-        self.interactions = ModuleList()
+        irreps = self.irreps_node_x
+        self.interactions = nn.ModuleList()
         for _ in range(num_convs):
             irreps_scalars = o3.Irreps([(m, ir) for m, ir in self.irreps_hidden if ir.l == 0 and tp_path_exists(irreps, self.irreps_edge, ir)])
             irreps_gated   = o3.Irreps([(m, ir) for m, ir in self.irreps_hidden if ir.l > 0  and tp_path_exists(irreps, self.irreps_edge, ir)])
 
             if irreps_gated.dim > 0:
-                if tp_path_exists(irreps_node, self.irreps_edge, "0e"):
+                if tp_path_exists(irreps_node_z, self.irreps_edge, "0e"):
                     ir = "0e"
-                elif tp_path_exists(irreps_node, self.irreps_edge, "0o"):
+                elif tp_path_exists(irreps_node_z, self.irreps_edge, "0o"):
                     ir = "0o"
                 else:
                     raise ValueError(f"irreps={irreps} times irreps_edge={self.irreps_edge} is unable to produce gates needed for irreps_gated={irreps_gated}.")
@@ -101,7 +101,7 @@ class NequIP(torch.nn.Module):
 
             conv = Interaction(
                 irreps_in      = irreps,
-                irreps_node    = self.irreps_node,
+                irreps_node    = self.irreps_node_z,
                 irreps_edge    = self.irreps_edge,
                 irreps_out     = gate.irreps_in,
                 radial_neurons = radial_neurons,
@@ -112,28 +112,20 @@ class NequIP(torch.nn.Module):
 
         self.out = o3.FullyConnectedTensorProduct(
             irreps_in1 = irreps,
-            irreps_in2 = self.irreps_node,
+            irreps_in2 = self.irreps_node_z,
             irreps_out = self.irreps_out,
         )
 
     def forward(self, data):
-        x, edge_index, edge_vec = data.x, data.edge_index, data.edge_attr
+        # Embedding
+        data = self.init_embed(data)
+        edge_index, edge_attr = data.edge_index, data.edge_attr
+        h_node_x, h_node_z, h_edge = data.h_node_x, data.h_node_z, data.h_edge
 
-        z     = self.embed_node_z(x)
-        h_atm = self.embed_node_x(x)
-
-        h_bnd = soft_one_hot_linspace(
-            edge_vec.norm(dim=1),
-            start  = 0.0,
-            end    = self.max_radius,
-            number = self.num_edge_basis,
-            basis  = 'smooth_finite',
-            cutoff = True,
-        ).mul(self.num_edge_basis**0.5)
-
-        edge_sh = o3.spherical_harmonics(self.irreps_edge, edge_vec, normalize=True, normalization='component')
-
+        # Graph convolutions
+        edge_sh = o3.spherical_harmonics(self.irreps_edge, edge_attr, normalize=True, normalization='component')
         for layer in self.interactions:
-            h_atm = layer(h_atm, z, edge_index, edge_sh, h_bnd)
+            h_node_x = layer(h_node_x, h_node_z, edge_index, edge_sh, h_edge)
 
-        return self.out(h_atm, z)
+        # Final output layer
+        return self.out(h_node_x, h_node_z)

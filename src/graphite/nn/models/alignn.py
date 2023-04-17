@@ -3,7 +3,7 @@ from torch.nn       import Embedding, Linear, ModuleList, SiLU, Sequential
 from torch_scatter  import scatter
 from functools      import partial
 from ..basis        import gaussian, bessel
-from ..conv         import EGConv
+from ..conv         import GatedGCN
 
 
 class ALIGNN(torch.nn.Module):
@@ -23,8 +23,8 @@ class ALIGNN(torch.nn.Module):
         self.atm_bnd_interactions = ModuleList()
         self.bnd_ang_interactions = ModuleList()
         for _ in range(num_interactions):
-            self.atm_bnd_interactions.append(EGConv(dim, dim))
-            self.bnd_ang_interactions.append(EGConv(dim, dim))
+            self.atm_bnd_interactions.append(GatedGCN(dim, dim))
+            self.bnd_ang_interactions.append(GatedGCN(dim, dim))
         
         self.head = Sequential(
             Linear(dim, dim), SiLU(),

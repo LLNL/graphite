@@ -10,6 +10,7 @@ class EdgeProcessor(nn.Module):
     """Edge Processor for MeshGraphNet
     Args:
         hs (list of int): Input, hidden, and output dimensions of the MLP processor.
+            Example: [32, 128, 128, 64].
     """
     def __init__(self, hs):
         super().__init__()
@@ -29,6 +30,7 @@ class NodeProcessor(nn.Module):
     """Node Processor for MeshGraphNet
     Args:
         hs (list of int): Input, hidden, and output dimensions of the MLP processor.
+            Example: [32, 128, 128, 64].
     """
     def __init__(self, hs):
         super().__init__()
@@ -47,10 +49,12 @@ class NodeProcessor(nn.Module):
 
 
 def mgn_conv(node_dim, edge_dim):
-    """A graph convolution operation equivalent to MeshGraphNet's node/edge processors.
+    """Graph convolution operation equivalent to MeshGraphNet's node/edge processors.
 
-    Reference:
-    - https://arxiv.org/pdf/2010.03409v4.pdf
+    Reference: https://arxiv.org/pdf/2010.03409v4.pdf
+
+    Different from the original formulation, this version does not account for multiple edge sets.
+    TODO: allow for multiple edge sets.
     """
     edge_model = EdgeProcessor(hs=[node_dim*2+edge_dim]+[edge_dim]*3)
     node_model = NodeProcessor(hs=[node_dim+edge_dim]+[node_dim]*3)

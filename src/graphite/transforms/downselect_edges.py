@@ -4,7 +4,7 @@ from ..nn import downselect_edges
 
 
 class DownselectEdges(BaseTransform):
-    """Given a particle data with pre-computed edges/bonds,
+    """Given a particle data with a set of edges/bonds,
     downselect the edges that are shorter than the specified cutoff.
 
     Args:

@@ -1,5 +1,5 @@
 import torch
-from torch.nn.functional import log_softmax
+import torch.nn.functional as F
 import torch.autograd as autograd
 
 
@@ -7,7 +7,7 @@ def soft_cross_entropy(input, target):
     """Multi-category cross entropy loss for soft labels.
     `torch.nn.CrossEntropyLoss` in earlier PyTorch versions does not allow soft labels.
     """
-    logprobs = log_softmax(input, dim=1)
+    logprobs = F.log_softmax(input, dim=1)
     return -(target * logprobs).sum() / input.shape[0]
 
 
@@ -25,3 +25,16 @@ def sliced_score_estimation(score_net, data):
     loss2        = (v_dot_grad_s * v).sum(dim=-1)
 
     return (loss1 + loss2).mean()
+
+
+def jensen_shannon(input, target, reduction='batchmean', eps=1e-5):
+    """Compute the square root of the Jensen-Shannon divergence.
+    `input` and `target` are assumed to be BxD tensors, where B is the batch dimension,
+    and D is the feature dimension.
+    """
+    P, Q = input+eps, target+eps
+    P, Q = P/P.sum(-1), Q/Q.sum(-1)
+    M = ((P+Q)/2).log()
+    loss = 0.5 * F.kl_div(M, P, reduction=reduction) \
+         + 0.5 * F.kl_div(M, Q, reduction=reduction)
+    return loss.sqrt()

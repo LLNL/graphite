@@ -7,9 +7,8 @@ from ase.neighborlist import neighbor_list
 
 def atoms2graph(atoms, cutoff, edge_dist=False):
     """Convert an ASE `Atoms` object into a graph based on a radius cutoff.
-    Returns the graph (in COO format),
-    its node attributes (atom types, `x`),
-    and its edge attributes (format determined by `edge_dist`).
+    Returns the graph (in COO format) and its edge attributes (format 
+    determined by `edge_dist`).
 
     Args:
         atoms (ase.Atoms): Collection of atoms to be converted to a graph.
@@ -18,23 +17,20 @@ def atoms2graph(atoms, cutoff, edge_dist=False):
             Otherwise, output edge vectors.
 
     Returns:
-       tuple: Tuple of (edge_index, x, edge_attr) that describes the atomic graph.
+       tuple: Tuple of (edge_index, edge_attr) that describes the atomic graph.
 
-    :rtype: (ndarray, ndarray, ndarray)
+    :rtype: (ndarray, ndarray)
     """
-    _, x = np.unique(atoms.numbers, return_inverse=True)
     i, j, d, D = neighbor_list('ijdD', atoms, cutoff)
     if edge_dist:
-        return np.stack((i, j)), x, d.astype(np.float32)
+        return np.stack((i, j)), d.astype(np.float32)
     else:
-        return np.stack((i, j)), x, D.astype(np.float32)
+        return np.stack((i, j)), D.astype(np.float32)
 
 
 def atoms2knngraph(atoms, cutoff, k=12, scale_inv=True):
     """Convert an ASE `Atoms` object into a graph based on k nearest neighbors.
-    Returns the graph (in COO format),
-    its node attributes (atom types `x`),
-    and its edge attributes (distance vectors `edge_attr`).
+    Returns the graph (in COO format), and its edge attributes (distance vectors `edge_attr`).
 
     Args:
         atoms (ase.Atoms): Collection of atoms to be converted to a graph.
@@ -46,9 +42,9 @@ def atoms2knngraph(atoms, cutoff, k=12, scale_inv=True):
             one unit distance away. This makes the knn graph scale-invariant.
 
     Returns:
-       tuple: Tuple of (edge_index, x, edge_attr) that describes the knn graph.
+       tuple: Tuple of (edge_index, edge_attr) that describes the knn graph.
 
-    :rtype: (ndarray, ndarray, ndarray)
+    :rtype: (ndarray, ndarray)
     """
     edge_src, edge_dst, edge_dists, edge_vecs = neighbor_list('ijdD', atoms, cutoff=cutoff)
 
@@ -74,6 +70,5 @@ def atoms2knngraph(atoms, cutoff, k=12, scale_inv=True):
     D = np.concatenate(vec_knn)
 
     edge_index = np.stack((i, j))
-    _, x = np.unique(atoms.numbers, return_inverse=True)
     edge_attr = D.astype(np.float32)
-    return edge_index, x, edge_attr
+    return edge_index, edge_attr

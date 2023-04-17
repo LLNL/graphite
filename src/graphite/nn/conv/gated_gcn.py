@@ -1,24 +1,27 @@
 import torch
-from torch.nn           import Linear, LayerNorm, SiLU,  Sigmoid
+from torch import nn
 from torch_geometric.nn import MessagePassing
 from torch_scatter      import scatter
 
 
-class EGConv(MessagePassing):
-    """Edge-gated convolution.
-    This version concatenates the `x_i`, `x_j`, and `e_ij` feature vectors during edge update.
-    Reference:
-    * https://arxiv.org/abs/2003.00982
+class GatedGCN(MessagePassing):
+    """Gated GCN, also known as edge-gated convolution.
+    Reference: https://arxiv.org/abs/2003.00982
+    
+    Different from the original version, in this version, the activation function is SiLU,
+    and the normalization is LayerNorm.
+
+    This implementation concatenates the `x_i`, `x_j`, and `e_ij` feature vectors during the edge update.
     """
     def __init__(self, node_dim, edge_dim, epsilon=1e-5):
         super().__init__(aggr='add')
-        self.W_src  = Linear(node_dim, node_dim)
-        self.W_dst  = Linear(node_dim, node_dim)
-        self.W_e    = Linear(node_dim*2 + edge_dim, edge_dim)
-        self.act    = SiLU()
-        self.sigma  = Sigmoid()
-        self.norm_x = LayerNorm([node_dim])
-        self.norm_e = LayerNorm([edge_dim])
+        self.W_src  = nn.Linear(node_dim, node_dim)
+        self.W_dst  = nn.Linear(node_dim, node_dim)
+        self.W_e    = nn.Linear(node_dim*2 + edge_dim, edge_dim)
+        self.act    = nn.SiLU()
+        self.sigma  = nn.Sigmoid()
+        self.norm_x = nn.LayerNorm([node_dim])
+        self.norm_e = nn.LayerNorm([edge_dim])
         self.eps    = epsilon
 
         self.reset_parameters()
@@ -51,22 +54,26 @@ class EGConv(MessagePassing):
         return e_gated * self.W_dst(x_j)
 
 
-class EGConv_v2(MessagePassing):
-    """Edge-gated convolution.
-    This version is closer to the original formulation (without the concatenation).
-    * https://arxiv.org/abs/2003.00982
+class GatedGCN_v2(MessagePassing):
+    """Gated GCN, also known as edge-gated convolution.
+    Reference: https://arxiv.org/abs/2003.00982
+
+    Different from the original version, in this version, the activation function is SiLU,
+    and the normalization is LayerNorm.
+
+    This implementation is closer to the original formulation (without the concatenation).
     """
     def __init__(self, node_dim, edge_dim, epsilon=1e-5):
         super().__init__(aggr='add')
-        self.W_src  = Linear(node_dim, node_dim)
-        self.W_dst  = Linear(node_dim, node_dim)
-        self.W_A    = Linear(node_dim, edge_dim)
-        self.W_B    = Linear(node_dim, edge_dim)
-        self.W_C    = Linear(edge_dim, edge_dim)
-        self.act    = SiLU()
-        self.sigma  = Sigmoid()
-        self.norm_x = LayerNorm([node_dim])
-        self.norm_e = LayerNorm([edge_dim])
+        self.W_src  = nn.Linear(node_dim, node_dim)
+        self.W_dst  = nn.Linear(node_dim, node_dim)
+        self.W_A    = nn.Linear(node_dim, edge_dim)
+        self.W_B    = nn.Linear(node_dim, edge_dim)
+        self.W_C    = nn.Linear(edge_dim, edge_dim)
+        self.act    = nn.SiLU()
+        self.sigma  = nn.Sigmoid()
+        self.norm_x = nn.LayerNorm([node_dim])
+        self.norm_e = nn.LayerNorm([edge_dim])
         self.eps    = epsilon
 
         self.reset_parameters()

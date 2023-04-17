@@ -4,8 +4,6 @@ import itertools
 from functools import partial
 from .utils import np_scatter
 
-from ase.neighborlist import neighbor_list
-
 
 permute_2 = partial(itertools.permutations, r=2)
 def line_graph(edge_index_G):

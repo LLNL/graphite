@@ -1,8 +1,6 @@
 import torch
 from torch import tensor as t
 
-import torch.multiprocessing as mp
-
 
 def coord2index(coord, shape):
     cumprod = torch.cat([t([1]), shape[:-1].cumprod(dim=0)])
@@ -42,7 +40,6 @@ def connect_neighbors(cells, c1, c2, s, pos, box, ii, jj):
     return i[mask], j[mask], v[mask]
 
 
-@torch.no_grad()
 def periodic_radius_graph(pos, box, cutoff):
     """Computes graph edges based on a cutoff radius for point cloud data with periodic boundaries.
     Returns the edge indices `edge_index` and the edge vectors `edge_vec`.
@@ -125,10 +122,6 @@ def periodic_radius_graph(pos, box, cutoff):
         src.append(i[mask])
         dst.append(j[mask])
         vec.append(v[mask])
-    # else:
-    #     with mp.Pool(processes=num_processes) as p:
-    #         args = [(cells, c1, c2, s, pos, box, ii, jj) for c1, c2, s in zip(center_indices, nbr_indices, nbr_shifts)]
-    #         src, dst, vec = p.starmap(connect_neighbors, args)
     
     src = torch.cat(src)
     dst = torch.cat(dst)

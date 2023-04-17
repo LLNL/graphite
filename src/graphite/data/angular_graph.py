@@ -9,10 +9,10 @@ class AngularGraphPairData(Data):
     and an angular graph of `N_ang` angles (including dihedral angles, if there's any).
 
     Args:
-        edge_index_G (2 x N_atm Tensor): Edge index of the atomic graph in COO format.
+        edge_index_G (2 x N_atm Tensor): Edge index of the atomic graph "G".
         x_atm (N_atm x F_atm Tensor): Atom features.
         x_bnd (N_bnd x F_bnd Tensor): Bond features.
-        edge_index_A (2 x N_ang Tensor): Edge index of the angular graph in COO format.
+        edge_index_A (2 x N_ang Tensor): Edge index of the angular graph "A".
         x_ang (N_ang x F_ang Tensor): Angle features.
         mask_dih_ang (Tensor of bool, optional): If the angular graph contains dihedral
             angles, this mask indicates which angles are dihedral angles.

@@ -8,7 +8,6 @@ __all__ = [
     'np_groupby',
     'np_scatter',
     'arg_same_rows',
-    'encode_labels',
     'summary',
 ]
 
@@ -52,15 +51,6 @@ def arg_same_rows(A, B):
     Returns two sets of indices: one w.r.t. A and one w.r.t. B.
     """
     return np.where(abs((A[:, None, :] - B)).sum(axis=2) == 0)
-
-
-def encode_labels(labels):
-    """Encode categorical labels into integer representation.
-    For example, [4, 5, 10, 5, 4, 4] would be encoded to [0, 1, 2, 1, 0, 0],
-    and ['paris', 'paris', 'tokyo', 'amsterdam'] would be encoded to [1, 1, 2, 0].
-    """
-    _, labels = np.unique(labels, return_inverse=True)
-    return labels
 
 
 def summary(model):
