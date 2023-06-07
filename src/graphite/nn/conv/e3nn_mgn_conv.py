@@ -1,6 +1,6 @@
 import torch
-from torch              import nn
-from torch_scatter      import scatter
+from torch import nn
+from torch_geometric.utils import scatter
 from torch_geometric.nn import MetaLayer
 
 from e3nn.nn import BatchNorm

@@ -2,19 +2,19 @@ from torch_geometric.data import Data
 
 
 class AngularGraphPairData(Data):
-    """Custom PyG data for representing a pair of two graphs: one graph for regular atomic
+    """Custom PyG data for representing a pair of two graphs: one for regular atomic
     structure (atom and bonds) and the other for bond/dihedral angles.
     
     The following arguments assume an atomic graph of `N_atm` atoms with `N_bnd` bonds,
     and an angular graph of `N_ang` angles (including dihedral angles, if there's any).
 
     Args:
-        edge_index_G (2 x N_atm Tensor): Edge index of the atomic graph "G".
-        x_atm (N_atm x F_atm Tensor): Atom features.
-        x_bnd (N_bnd x F_bnd Tensor): Bond features.
-        edge_index_A (2 x N_ang Tensor): Edge index of the angular graph "A".
-        x_ang (N_ang x F_ang Tensor): Angle features.
-        mask_dih_ang (Tensor of bool, optional): If the angular graph contains dihedral
+        edge_index_G (LongTensor): Edge index of the atomic graph "G".
+        x_atm (Tensor): Atom features.
+        x_bnd (Tensor): Bond features.
+        edge_index_A (LongTensor): Edge index of the angular graph "A".
+        x_ang (Tensor): Angle features.
+        mask_dih_ang (Boolean Tensor, optional): If the angular graph contains dihedral
             angles, this mask indicates which angles are dihedral angles.
     """
     def __init__(self,

@@ -7,38 +7,40 @@ A repository for implementing graph network models based on atomic structures.
 
 - ALIGNN
     - [*Atomistic Line Graph Neural Network for improved materials property predictions*][ALIGNN paper]
-- **ALIGNN-d** (our work)
+- **ALIGNN-d** (our work, see demo [here](notebooks/alignn/alignn-demo.ipynb))
     - [*Efficient and interpretable graph network representation for angle-dependent properties applied to optical spectroscopy*][ALIGNN-d paper]
-- Edge-gated graph convolution
-    - [*Benchmarking Graph Neural Networks*][edge-gated conv paper]
+- Gated GCN
+    - [*Benchmarking Graph Neural Networks*][Gated GCN paper]
 - NequIP (code implementation adopted from `e3nn`)
     - [*E(3)-Equivariant Graph Neural Networks for Data-Efficient and Accurate Interatomic Potentials*][NequIP paper]
-- **Denoising NequIP** (our work, see demo [here](notebooks/denoiser/training-and-inference.ipynb))
-    - [*An iterative unbiased geometric approach to identifying crystalline order and disorder via denoising score function model*][denoising paper]
-- MeshGraphNet
-    - [*Learning Mesh-Based Simulation with Graph Networks*][mgn_paper]
+- **Atomic Structure denoiser** (our work, see demo [here](notebooks/denoiser/training-and-inference.ipynb))
+    - [*Score-based denoising for atomic structure identification*][Denoiser paper]
+- MeshGraphNets
+    - [*Learning Mesh-Based Simulation with Graph Networks*][MGN paper]
 
 
 ## Installation
 
-The following dependencies need to be installed before installing `graphite`. The installation time is typically within 10 minutes on a normal local machine.
+The installation time is typically within 10 minutes on a normal local machine.
+
+Dependencies:
 - PyTorch (`pytorch>=1.8.1`)
 - PyTorch-Geometric (`pyg>=2.0.1`): for implementing graph network operations.
 - [Optional] Atomic Simulation Environment (`ase`): for reading/writing atomic structures.
 - [Optional] Euclidean neural networks (`e3nn>=0.4.4`): dependency for the NequIP models.
 
-For example:
+An example for the installation process:
 ```bash
-conda create -n graphite python=3.9
+conda create -n graphite
 conda activate graphite
-conda install pytorch cudatoolkit=11.3 -c pytorch  # Assuming the CUDA version is 11.3
+conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 conda install pyg -c pyg
 
-## Optional but recommended
+# Optional install dependency, but required for some of the model implementations
 pip install ase e3nn
 
-## Other useful packages to install for development (optional)
-pip install jupyterlab tensorboard seaborn
+# Other useful packages for development (optional)
+pip install jupyterlab seaborn lightning tensorboard MDAnalysis
 ```
 
 Then, to install `graphite`, clone this repo and run:
@@ -56,10 +58,11 @@ pip uninstall graphite
 
 ## How to use
 
-`graphite` is intended to be a general toolbox of graph model codes (e.g., helper functions, custom graph convolutions, and template graph models) for atomic structures. Production codes for specific applications should be hosted elsewhere.
+`graphite` is intended to be a general collection of codes (e.g., helper functions, custom graph convolutions, and template graph models) for research purposes. Production codes for certain applications and deployments should be hosted elsewhere.
 
 - The `src` folder contains the source code.
-- The `notebooks` folder contains Jupyter notebooks as demonstrations for running or training models.
+- The `notebooks` folder contains Jupyter notebooks that demonstrate running or training models.
+    - Some demos require additional packages (e.g., PyTorch Lightning for automated training). Please see Installation and the instructions in the demos.
 
 
 ## Release
@@ -70,13 +73,11 @@ LLNL-CODE-836648
 
 [ALIGNN paper]: https://www.nature.com/articles/s41524-021-00650-1
 [ALIGNN-d paper]: https://www.nature.com/articles/s41524-022-00841-4
-[edge-gated conv paper]: https://arxiv.org/abs/2003.00982
+[Gated GCN paper]: https://arxiv.org/abs/2003.00982
 [e3nn basic conv doc]: https://docs.e3nn.org/en/stable/guide/convolution.html
-[NequIP paper]: https://arxiv.org/abs/2101.03164
-[SE(3)-transformer paper]: https://proceedings.neurips.cc/paper/2020/hash/15231a7ce4ba789d13b722cc5c955834-Abstract.html
+[NequIP paper]: https://www.nature.com/articles/s41467-022-29939-5
 [e3nn transformer doc]: https://docs.e3nn.org/en/stable/guide/transformer.html
 [PyG dataset doc]: https://pytorch-geometric.readthedocs.io/en/latest/notes/create_dataset.html
-[denoising paper]: https://arxiv.org/abs/2212.02421
-[mgn_paper]: https://arxiv.org/abs/2010.03409v4
-
+[Denoiser paper]: https://arxiv.org/abs/2212.02421
+[MGN paper]: https://arxiv.org/abs/2010.03409v4
 

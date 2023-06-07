@@ -34,7 +34,7 @@ def np_groupby(arr, groups):
 def np_scatter(src, index, func):
     """Abstraction of the `torch_scatter.scatter` function.
     See https://pytorch-scatter.readthedocs.io/en/latest/functions/scatter.html
-    for how `scatter` works in PyTorch.
+    for how `scatter` works.
 
     Args:
         src (list): The source array.

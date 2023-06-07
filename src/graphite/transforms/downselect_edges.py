@@ -1,25 +1,19 @@
+import torch
 from torch_geometric.transforms import BaseTransform
-
-from ..nn import downselect_edges
 
 
 class DownselectEdges(BaseTransform):
     """Given a particle data with a set of edges/bonds,
     downselect the edges that are shorter than the specified cutoff.
-
-    Args:
-        cutoff (float): Cutoff distance within which pairs of nodes would
-            be considered connected.
     """
-    def __init__(self, cutoff):
+    def __init__(self, cutoff, cell=None):
         self.cutoff = cutoff
     
     def __call__(self, data):
-        edge_index, pos = data.edge_index, data.pos
-        box = data.box if hasattr(data, 'box') else 0.0
-        edge_index, edge_vec = downselect_edges(edge_index, pos, self.cutoff, box)
-        data.edge_index = edge_index
-        data.edge_attr  = edge_vec
+        edge_index, edge_attr = data.edge_index, data.edge_attr
+        mask = (edge_attr.norm(dim=1) <= self.cutoff)
+        data.edge_index = edge_index[:, mask]
+        data.edge_attr  = edge_attr[mask]
         return data
     
     def __repr__(self):

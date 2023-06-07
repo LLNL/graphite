@@ -30,16 +30,16 @@ def scalar2basis(x, start, end, num_basis, basis='gaussian'):
     return funcs[basis](x, start, end, num_basis)
 
 
-class GaussianFourierProjection(torch.nn.Module):
-    """Gaussian random features from the paper titled
+class GaussianRandomFourierFeatures(torch.nn.Module):
+    """Gaussian random Fourier features from the paper titled
     'Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains'.
     Reference: https://arxiv.org/abs/2006.10739
     """
-    def __init__(self, embed_dim, scale=30.0):
+    def __init__(self, embed_dim, input_dim=1, sigma=1.0):
         super().__init__()
         # Randomly sample weights during initialization. These weights are fixed
         # during optimization and are not trainable.
-        self.W = torch.nn.Parameter(torch.randn(embed_dim // 2) * scale, requires_grad=False)
-    def forward(self, x):
-        x_proj = x[:, None] * self.W[None, :] * 2 * torch.pi
-        return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=-1)
+        self.B = torch.nn.Parameter(torch.randn(input_dim, embed_dim//2) * sigma, requires_grad=False)
+    def forward(self, v):
+        v_proj =  2 * torch.pi * v @ self.B
+        return torch.cat([torch.cos(v_proj), torch.sin(v_proj)], dim=-1)

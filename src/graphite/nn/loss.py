@@ -3,14 +3,6 @@ import torch.nn.functional as F
 import torch.autograd as autograd
 
 
-def soft_cross_entropy(input, target):
-    """Multi-category cross entropy loss for soft labels.
-    `torch.nn.CrossEntropyLoss` in earlier PyTorch versions does not allow soft labels.
-    """
-    logprobs = F.log_softmax(input, dim=1)
-    return -(target * logprobs).sum() / input.shape[0]
-
-
 # Adopted from https://github.com/ermongroup/sliced_score_matching
 def sliced_score_estimation(score_net, data):
     x = data.view(-1, *data.shape[1:])

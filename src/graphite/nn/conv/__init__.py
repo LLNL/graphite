@@ -1,2 +1,2 @@
 from .gated_gcn import GatedGCN, GatedGCN_v2
-from .mgn_conv import mgn_conv
+from .mgn_conv import MeshGraphNetsConv

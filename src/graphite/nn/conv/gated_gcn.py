@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch_geometric.nn import MessagePassing
-from torch_scatter      import scatter
+from torch_geometric.utils import scatter
 
 
 class GatedGCN(MessagePassing):

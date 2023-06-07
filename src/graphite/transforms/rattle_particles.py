@@ -10,19 +10,29 @@ class RattleParticles(BaseTransform):
         sigma_min (float): The minimum standard deviation of the Gaussian noise.
         sigma_max (float): The maximum standard deviation of the Gaussian noise.
     """
-    def __init__(self,
-        sigma_min = 0.0,
-        sigma_max = 0.3,
-    ):
+    def __init__(self, sigma_max, sigma_min=0.001):
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
     
     def __call__(self, data):
-        sigma = torch.empty(1, device=data.pos.device).uniform_(self.sigma_min, self.sigma_max)
-        eps   = torch.randn_like(data.pos)
+        # If `data` is a batch, apply noises of different magnitudes to the individual samples
+        if data.batch is not None:
+            sigma = torch.empty(data.num_graphs, device=data.pos.device).uniform_(self.sigma_min, self.sigma_max)
+            sigma = sigma[data.batch, None]
+        else:
+            sigma = torch.empty(1, device=data.pos.device).uniform_(self.sigma_min, self.sigma_max)
+        
+        # Add noise
+        eps       = torch.randn_like(data.pos)
+        data.dx   = sigma*eps
+        data.pos += data.dx
 
-        data.disp  = sigma*eps
-        data.pos  += data.disp
+        # If `data` has edge vectors `edge_attr`, update them as well
+        if data.edge_attr is not None:
+            i, j = data.edge_index
+            data.edge_attr += data.dx[j] - data.dx[i]
+
+        # Potentially useful quantities to store
         data.sigma = sigma
         data.eps   = eps
         return data

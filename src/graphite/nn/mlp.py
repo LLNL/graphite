@@ -2,9 +2,6 @@ import torch
 from torch import nn
 
 
-__all__ = ['MLP']
-
-
 class MLP(nn.Module):
     """Multi-layer perceptron with custom activation functions.
 
@@ -16,6 +13,8 @@ class MLP(nn.Module):
     """
     def __init__(self, hs, act=None):
         super().__init__()
+        self.hs = hs
+        self.act = act
         
         num_layers = len(hs)
 
@@ -25,7 +24,10 @@ class MLP(nn.Module):
             if (act is not None) and (i < num_layers-2):
                 layers += [act]
 
-        self.model = nn.Sequential(*layers)
+        self.mlp = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.model(x)
+        return self.mlp(x)
+    
+    def __repr__(self):
+        return f'{self.__class__.__name__}(hs={self.hs}, act={self.act})'
