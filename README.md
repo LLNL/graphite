@@ -7,13 +7,13 @@ A repository for implementing graph network models based on atomic structures.
 
 - ALIGNN
     - [*Atomistic Line Graph Neural Network for improved materials property predictions*][ALIGNN paper]
-- **ALIGNN-d** (our work, see demo [here](notebooks/alignn/alignn-demo.ipynb))
+- **ALIGNN-d** (our work, see demo [here](notebooks/alignn/demo.ipynb))
     - [*Efficient and interpretable graph network representation for angle-dependent properties applied to optical spectroscopy*][ALIGNN-d paper]
 - Gated GCN
     - [*Benchmarking Graph Neural Networks*][Gated GCN paper]
 - NequIP (code implementation adopted from `e3nn`)
     - [*E(3)-Equivariant Graph Neural Networks for Data-Efficient and Accurate Interatomic Potentials*][NequIP paper]
-- **Atomic Structure denoiser** (our work, see demo [here](notebooks/denoiser/training-and-inference.ipynb))
+- **Atomic Structure denoiser** (our work, see demo [here](notebooks/denoiser/demo.ipynb))
     - [*Score-based denoising for atomic structure identification*][Denoiser paper]
 - MeshGraphNets
     - [*Learning Mesh-Based Simulation with Graph Networks*][MGN paper]
