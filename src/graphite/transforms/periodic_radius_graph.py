@@ -16,7 +16,7 @@ class PeriodicRadiusGraph(BaseTransform):
         self.cutoff = cutoff
     
     def __call__(self, data):
-        pos, box = data.pos, data.box
+        pos, box = data.pos, data.cell.diag()
         edge_index, edge_vec = periodic_radius_graph(pos, box, self.cutoff)
         data.edge_index = edge_index
         data.edge_attr  = edge_vec
