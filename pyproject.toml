@@ -1,3 +1,23 @@
 [build-system]
 requires = ["setuptools>=54", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "graphite"
+version = "0.0.1"
+description = "A library for implementing graph network models based on atomic structures."
+authors = [{ name = "Tim Hsu", email = "hsu16@llnl.gov" }]
+maintainers = [{ name = "Tim Hsu", email = "hsu16@llnl.gov" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = ["ase", "torch>=1.8.1", "torch-geometric>=2.0.1"]
+
+[project.urls]
+repository = "https://github.com/llnl/graphite"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+graphite = ["pretrained_models/denoiser/*.pt"]
