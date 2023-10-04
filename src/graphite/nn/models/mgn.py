@@ -6,59 +6,60 @@ from ..mlp import MLP
 from ..basis import GaussianRandomFourierFeatures
 from ..conv import MeshGraphNetsConv
 
+# Typing
+from torch import Tensor
+from typing import List, Optional, Tuple
+
 
 class Encoder(nn.Module):
     """MeshGraphNets Encoder.
-    The encoder must take a PyG graph object `data` and output the same `data`
-    with additional fields `h_node` and `h_edge` that correspond to the node and edge embedding.
     """
-    def __init__(self, num_species, node_dim, edge_dim):
+    def __init__(self, init_node_dim, init_edge_dim, node_dim, edge_dim):
         super().__init__()
-        self.num_species = num_species
+        self.init_node_dim = init_node_dim
+        self.init_edge_dim = init_edge_dim
         self.node_dim = node_dim
         self.edge_dim = edge_dim
 
-        self.embed_node = nn.Sequential(
-            MLP([num_species, node_dim, node_dim], act=nn.SiLU()),
-            nn.LayerNorm(node_dim),
-        )
-        self.embed_edge = nn.Sequential(
-            MLP([3+1, edge_dim, edge_dim], act=nn.SiLU()),
-            nn.LayerNorm(edge_dim),
-        )
+        self.embed_node = nn.Sequential(MLP([init_node_dim, node_dim, node_dim], act=nn.SiLU()), nn.LayerNorm(node_dim))
+        self.embed_edge = nn.Sequential(MLP([init_edge_dim, edge_dim, edge_dim], act=nn.SiLU()), nn.LayerNorm(edge_dim))
     
-    def forward(self, data):
-        # Embed nodes
-        data.h_node = self.embed_node(data.z)
-
-        # Embed edges
-        e_ij = data.edge_attr
-        h_edge = torch.cat([e_ij, e_ij.norm(dim=-1, keepdim=True)], dim=-1)
-        data.h_edge = self.embed_edge(h_edge)
-        
-        return data
+    def forward(self, x:Tensor, edge_attr:Tensor) -> Tuple[Tensor, Tensor]:
+        h_node = self.embed_node(x)
+        h_edge = self.embed_edge(edge_attr)
+        return h_node, h_edge
 
 
-class Encoder_dpm(Encoder):
-    """MeshGraphNets Encoder for diffusion model, with additional time encoding `data.h_time`.
+class Encoder_dpm(nn.Module):
+    """MeshGraphNets Encoder for diffusion model, with additional time encoding.
     """
-    def __init__(self, num_species, node_dim, edge_dim):
-        super().__init__(num_species, node_dim, edge_dim)
+    def __init__(self, init_node_dim, init_edge_dim, node_dim, edge_dim):
+        super().__init__()
+        self.init_node_dim = init_node_dim
+        self.init_edge_dim = init_edge_dim
+        self.node_dim = node_dim
+        self.edge_dim = edge_dim
+
+        self.embed_node = nn.Sequential(MLP([init_node_dim, node_dim, node_dim], act=nn.SiLU()), nn.LayerNorm(node_dim))
+        self.embed_edge = nn.Sequential(MLP([init_edge_dim, edge_dim, edge_dim], act=nn.SiLU()), nn.LayerNorm(edge_dim))
         self.embed_time = nn.Sequential(
             GaussianRandomFourierFeatures(node_dim, input_dim=1),
             MLP([node_dim, node_dim, node_dim], act=nn.SiLU()),
             nn.LayerNorm(node_dim),
         )
 
-    def forward(self, data, t):
-        data = super().forward(data)
-        data.h_node += self.embed_time(t)[data.batch].squeeze(1)
-        return data
+    def forward(self, x:Tensor, edge_attr:Tensor, t:Tensor) -> Tuple[Tensor, Tensor]:
+        # Encode nodes and edges
+        h_node = self.embed_node(x)
+        h_edge = self.embed_edge(edge_attr)
+        
+        # Add time embedding to node embedding
+        h_node += self.embed_time(t)
+        return h_node, h_edge
 
 
 class Processor(nn.Module):
     """MeshGraphNets Processor.
-    The processor updates both node and edge embeddings `data.h_node`, `data.h_edge`.
     """
     def __init__(self, num_convs, node_dim, edge_dim):
         super().__init__()
@@ -69,15 +70,33 @@ class Processor(nn.Module):
             [copy.deepcopy(MeshGraphNetsConv(node_dim, edge_dim)) for _ in range(num_convs)]
         )
 
-    def forward(self, data):
+    def forward(self, h_node:Tensor, edge_index:Tensor, h_edge:Tensor) -> Tuple[Tensor, Tensor]:
         for conv in self.convs:
-            data.h_node, data.h_edge = conv(data.h_node, data.edge_index, data.h_edge)
-        return data
+            h_node, h_edge = conv(h_node, edge_index, h_edge)
+        return h_node, h_edge
+
+
+class Processor_dpm(nn.Module):
+    """MeshGraphNets Processor for diffusion model, with additional time embedding.
+    """
+    def __init__(self, num_convs, node_dim, edge_dim):
+        super().__init__()
+        self.num_convs = num_convs
+        self.node_dim = node_dim
+        self.edge_dim = edge_dim
+        self.convs = nn.ModuleList(
+            [copy.deepcopy(MeshGraphNetsConv(node_dim, edge_dim)) for _ in range(num_convs)]
+        )
+
+    def forward(self, h_node:Tensor, edge_index:Tensor, h_edge:Tensor, h_time:Tensor) -> Tuple[Tensor, Tensor]:
+        for conv in self.convs:
+            h_node += h_time
+            h_node, h_edge = conv(h_node, edge_index, h_edge)
+        return h_node, h_edge
 
 
 class Decoder(nn.Module):
     """MeshGraphNets Decoder.
-    This decoder only operates on the node embedding `data.h_node`.
     """
     def __init__(self, node_dim, out_dim):
         super().__init__()
@@ -85,8 +104,8 @@ class Decoder(nn.Module):
         self.out_dim = out_dim
         self.decoder = MLP([node_dim, node_dim, out_dim], act=nn.SiLU())
     
-    def forward(self, data):
-        return self.decoder(data.h_node)
+    def forward(self, h_node:Tensor) -> Tensor:
+        return self.decoder(h_node)
 
 
 class MeshGraphNets(nn.Module):
@@ -98,26 +117,16 @@ class MeshGraphNets(nn.Module):
         self.processor = processor
         self.decoder   = decoder
     
-    def forward(self, data):
-        data = self.encoder(data)
-        data = self.processor(data)
-        return self.decoder(data)
+    def forward(self, x:Tensor, edge_index:Tensor, edge_attr:Tensor) -> Tensor:
+        h_node, h_edge = self.encoder(x, edge_attr)
+        h_node, h_edge = self.processor(h_node, edge_index, h_edge)
+        return self.decoder(h_node)
 
 
 class MeshGraphNets_dpm(MeshGraphNets):
     """Time-dependent MeshGraphNets for diffusion model.
     """
-    def forward(self, data, t, sigma=1.0):
-        data = self.encoder(data, t)
-        data = self.processor(data)
-        return self.decoder(data) / sigma
-
-
-class MeshGraphNets_dpm_cond(MeshGraphNets):
-    """Time-dependent, conditional MeshGraphNets for conditional diffusion model.
-    """
-    def forward(self, x, x_cond, t):
-        data = x_cond
-        data = self.encoder(x, data, t)
-        data = self.processor(data)
-        return self.decoder(data)
+    def forward(self, x:Tensor, edge_index:Tensor, edge_attr:Tensor, t:Tensor, sigma:Tensor) -> Tensor:
+        h_node, h_edge = self.encoder(x, edge_attr, t)
+        h_node, h_edge = self.processor(h_node, edge_index, h_edge)
+        return self.decoder(h_node) / sigma

@@ -5,79 +5,50 @@ import copy
 
 from ..mlp import MLP
 from ..basis import gaussian, bessel
-from ..conv import GatedGCN
+from ..conv import MeshGraphNetsConv
+
+# Typing
+from torch import Tensor
+from typing import List, Optional, Tuple
 
 
 class Encoder(nn.Module):
     """ALIGNN/ALIGNN-d Encoder.
-    The encoder must take a PyG graph object `data` and output the same `data`
-    with additional fields `h_atm`, `h_bnd`, and `h_ang` that correspond to the atom, bond, and angle embedding.
-
-    The input `data` must have three fields `x_atm`, `x_bnd`, and `x_ang` that describe the atom type
-    (in onehot vectors), the bond lengths, and bond/dihedral angles (in radians).
     """
-    def __init__(self, num_species, cutoff, dim=128, dihedral=False):
+    def __init__(self, num_species, init_bnd_dim=4, init_ang_dim=4, dim=128):
         super().__init__()
-        self.num_species = num_species
-        self.cutoff      = cutoff
-        self.dim         = dim
-        self.dihedral    = dihedral
+        self.num_species  = num_species
+        self.init_bnd_dim = init_bnd_dim
+        self.init_ang_dim = init_ang_dim
+        self.dim          = dim
         
-        self.embed_atm = nn.Sequential(MLP([num_species, dim, dim], act=nn.SiLU()), nn.LayerNorm(dim))
-        self.embed_bnd = partial(bessel, start=0, end=cutoff, num_basis=dim)
-        self.embed_ang = self.embed_ang_with_dihedral if dihedral else self.embed_ang_without_dihedral
+        self.embed_atm = nn.Sequential(MLP([num_species, dim, dim],  act=nn.SiLU()), nn.LayerNorm(dim))
+        self.embed_bnd = nn.Sequential(MLP([init_bnd_dim, dim, dim], act=nn.SiLU()), nn.LayerNorm(dim))
+        self.embed_ang = nn.Sequential(MLP([init_ang_dim, dim, dim], act=nn.SiLU()), nn.LayerNorm(dim))
 
-    def embed_ang_with_dihedral(self, x_ang, mask_dih_ang):
-        cos_ang = torch.cos(x_ang)
-        sin_ang = torch.sin(x_ang)
-
-        h_ang = torch.zeros([len(x_ang), self.dim], device=x_ang.device)
-        h_ang[~mask_dih_ang, :self.dim//2] = gaussian(cos_ang[~mask_dih_ang], start=-1, end=1, num_basis=self.dim//2)
-
-        h_cos_ang = gaussian(cos_ang[mask_dih_ang], start=-1, end=1, num_basis=self.dim//4)
-        h_sin_ang = gaussian(sin_ang[mask_dih_ang], start=-1, end=1, num_basis=self.dim//4)
-        h_ang[mask_dih_ang, self.dim//2:] = torch.cat([h_cos_ang, h_sin_ang], dim=-1)
-
-        return h_ang
-    
-    def embed_ang_without_dihedral(self, x_ang, mask_dih_ang):
-        cos_ang = torch.cos(x_ang)
-        return gaussian(cos_ang, start=-1, end=1, num_basis=self.dim)
-
-    def forward(self, data):
-        # Embed atoms
-        data.h_atm = self.embed_atm(data.x_atm)
-        
-        # Embed bonds
-        data.h_bnd = self.embed_bnd(data.x_bnd)
-        
-        # Embed angles
-        data.h_ang = self.embed_ang(data.x_ang, data.mask_dih_ang)
-        
-        return data
+    def forward(self,  x_atm:Tensor, x_bnd:Tensor, x_ang:Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        h_atm = self.embed_atm(x_atm)
+        h_bnd = self.embed_bnd(x_bnd)
+        h_ang = self.embed_ang(x_ang)
+        return h_atm, h_bnd, h_ang
 
 
 class Processor(nn.Module):
     """ALIGNN Processor.
-    The processor updates atom, bond, and angle embeddings.
     """
     def __init__(self, num_convs, dim):
         super().__init__()
         self.num_convs = num_convs
         self.dim = dim
 
-        self.atm_bnd_convs = nn.ModuleList([copy.deepcopy(GatedGCN(dim, dim)) for _ in range(num_convs)])
-        self.bnd_ang_convs = nn.ModuleList([copy.deepcopy(GatedGCN(dim, dim)) for _ in range(num_convs)])
+        self.atm_bnd_convs = nn.ModuleList([copy.deepcopy(MeshGraphNetsConv(dim, dim)) for _ in range(num_convs)])
+        self.bnd_ang_convs = nn.ModuleList([copy.deepcopy(MeshGraphNetsConv(dim, dim)) for _ in range(num_convs)])
 
-    def forward(self, data):
-        edge_index_G = data.edge_index_G
-        edge_index_A = data.edge_index_A
-        
-        for i in range(self.num_convs):
-            data.h_bnd, data.h_ang = self.bnd_ang_convs[i](data.h_bnd, edge_index_A, data.h_ang)
-            data.h_atm, data.h_bnd = self.atm_bnd_convs[i](data.h_atm, edge_index_G, data.h_bnd)
-    
-        return data
+    def forward(self, h_atm:Tensor, h_bnd:Tensor, h_ang:Tensor, edge_index_bnd:Tensor, edge_index_ang:Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        for bnd_ang_conv, atm_bnd_conv in zip(self.bnd_ang_convs, self.atm_bnd_convs):
+            h_bnd, h_ang = bnd_ang_conv(h_bnd, edge_index_ang, h_ang)
+            h_atm, h_bnd = atm_bnd_conv(h_atm, edge_index_bnd, h_bnd)
+        return h_atm, h_bnd, h_ang
 
 
 class Decoder(nn.Module):
@@ -87,21 +58,18 @@ class Decoder(nn.Module):
         self.out_dim = out_dim
         self.decoder = MLP([node_dim, node_dim, out_dim], act=nn.SiLU())
 
-    def forward(self, data):
-        return self.decoder(data.h_atm)
+    def forward(self, h_atm:Tensor) -> Tensor:
+        return self.decoder(h_atm)
 
 
 class ALIGNN(nn.Module):
-    """ALIGNN model.
-    Can optinally encode dihedral angles.
-    """
     def __init__(self, encoder, processor, decoder):
         super().__init__()
         self.encoder   = encoder
         self.processor = processor
         self.decoder   = decoder
     
-    def forward(self, data):
-        data = self.encoder(data)
-        data = self.processor(data)
-        return self.decoder(data)
+    def forward(self, x_atm:Tensor, x_bnd:Tensor, x_ang:Tensor, edge_index_bnd:Tensor, edge_index_ang:Tensor) -> Tensor:
+        h_atm, h_bnd, h_ang = self.encoder(x_atm, x_bnd, x_ang)
+        h_atm, h_bnd, h_ang = self.processor(h_atm, h_bnd, h_ang, edge_index_bnd, edge_index_ang)
+        return self.decoder(h_atm)

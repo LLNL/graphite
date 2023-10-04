@@ -10,8 +10,7 @@ def index2mask(idx_arr, n):
     return mask.to(torch.bool)
 
 
-def arg_same_rows(A, B):
-    """Find indices of common rows in 2D numpy arrays A and B.
-    Returns two sets of indices: one w.r.t. A and one w.r.t. B.
-    """
-    return torch.where((A[:, None, :] - B).abs().sum(dim=2) == 0)
+def torch_groupby(arr, groups):
+    sort_idx = groups.argsort()
+    arr, groups = arr[sort_idx], groups[sort_idx]
+    return torch.split(arr, torch.bincount(groups).tolist())

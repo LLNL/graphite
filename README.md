@@ -7,26 +7,44 @@ A repository for implementing graph network models based on atomic structures.
 
 - ALIGNN
     - [*Atomistic Line Graph Neural Network for improved materials property predictions*][ALIGNN paper]
-- **ALIGNN-d** (our work, see demo [here](notebooks/alignn/demo.ipynb))
+- **ALIGNN-d** (our work, see [demo](notebooks/alignn/demo.ipynb))
     - [*Efficient and interpretable graph network representation for angle-dependent properties applied to optical spectroscopy*][ALIGNN-d paper]
 - Gated GCN
     - [*Benchmarking Graph Neural Networks*][Gated GCN paper]
 - NequIP (code implementation adopted from `e3nn`)
     - [*E(3)-Equivariant Graph Neural Networks for Data-Efficient and Accurate Interatomic Potentials*][NequIP paper]
-- **Atomic Structure denoiser** (our work, see demo [here](notebooks/denoiser/demo.ipynb))
+- **Atomic Structure denoiser** (our work, see [demo](notebooks/denoiser/demo.ipynb))
     - [*Score-based denoising for atomic structure identification*][Denoiser paper]
 - MeshGraphNets
     - [*Learning Mesh-Based Simulation with Graph Networks*][MGN paper]
+- **Score dynamics** (our work, see [demo](notebooks/score-dynamics/demo.ipynb))
+
+
+## Gallery
+
+### Score dynamics
+
+Generative rollouts of molecular dynamics over picosecond timesteps via conditional diffusion model.
+
+![](/media/score-dynamics/ala-dipep.gif)
+
+
+### Atomic structure denoiser
+
+Simple and effective atomic denoiser for structure characterization.
+
+![](/media/denoiser/denoising-fcc-2d.gif)
+![](/media/denoiser/denoising-fcc-3d.gif)
 
 
 ## Installation
 
-The installation time is typically within 10 minutes on a normal local machine.
+The installation time is typically less than 10 minutes on a normal local machine.
 
-Dependencies:
+Installation dependencies:
 - PyTorch (`pytorch>=1.8.1`)
-- PyTorch-Geometric (`pyg>=2.0.1`): for implementing graph network operations.
-- [Optional] Atomic Simulation Environment (`ase`): for reading/writing atomic structures.
+- PyTorch-Geometric (`pyg>=2.0.1`): for graph data format processing and batching.
+- [Optional] Atomic Simulation Environment (`ase`): for reading/writing atomic structures and efficient neighbor list algorithm.
 - [Optional] Euclidean neural networks (`e3nn>=0.4.4`): dependency for the NequIP models.
 
 An example for the installation process:
@@ -40,7 +58,7 @@ conda install pyg -c pyg
 pip install ase e3nn
 
 # Other useful packages for development (optional)
-pip install jupyterlab seaborn lightning tensorboard MDAnalysis
+pip install jupyterlab ipywidgets seaborn lightning tensorboard MDAnalysis
 ```
 
 Then, to install `graphite`, clone this repo and run:

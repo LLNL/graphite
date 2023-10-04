@@ -11,7 +11,7 @@ class DownselectEdges(BaseTransform):
     
     def __call__(self, data):
         edge_index, edge_attr = data.edge_index, data.edge_attr
-        mask = (edge_attr.norm(dim=1) <= self.cutoff)
+        mask = (edge_attr[:, :3].norm(dim=1) <= self.cutoff)
         data.edge_index = edge_index[:, mask]
         data.edge_attr  = edge_attr[mask]
         return data

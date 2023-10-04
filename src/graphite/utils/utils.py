@@ -2,16 +2,6 @@ import numpy as np
 import pandas as pd
 
 
-__all__ = [
-    'mask2index',
-    'index2mask',
-    'np_groupby',
-    'np_scatter',
-    'arg_same_rows',
-    'summary',
-]
-
-
 mask2index = lambda mask: np.flatnonzero(mask)
 
 
@@ -32,25 +22,17 @@ def np_groupby(arr, groups):
 
 
 def np_scatter(src, index, func):
-    """Abstraction of the `torch_scatter.scatter` function.
-    See https://pytorch-scatter.readthedocs.io/en/latest/functions/scatter.html
-    for how `scatter` works.
+    """Generalization of the `torch_scatter.scatter` operation for any reduce function.
+    See https://pytorch-scatter.readthedocs.io/en/latest/functions/scatter.html for how `scatter` works.
 
     Args:
-        src (list): The source array.
-        index (list of ints): The indices of elements to scatter.
-        func (function, optional): Function that operates on elements with the same indices.
+        src (array): The source array.
+        index (array of int): The indices of elements to scatter.
+        func (function): Reduce function (e.g., mean, sum) that operates on elements with the same indices.
 
     :rtype: generator
     """
     return (func(g) for g in np_groupby(src, index))
-
-
-def arg_same_rows(A, B):
-    """Find indices of common rows in 2D numpy arrays A and B.
-    Returns two sets of indices: one w.r.t. A and one w.r.t. B.
-    """
-    return np.where(abs((A[:, None, :] - B)).sum(axis=2) == 0)
 
 
 def summary(model):
