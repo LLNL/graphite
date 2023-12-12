@@ -1,4 +1,3 @@
 from .dpm_solver import DPMSolverDiffuser
 from .general import VariancePreservingDiffuser, VarianceExplodingDiffuser
 from .score_dynamics import ScoreDynamicsDiffuser
-from .periodic import PeriodicStructureDiffuser

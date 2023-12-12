@@ -20,7 +20,13 @@ def add_edges_v2(edge_index, new_edge_index):
     return torch.hstack([A, B[:, mask]])
 
 
+def edge_set(edge_index):
+    return set(map(tuple, edge_index.T.numpy()))
+
+
 def mask_edges(edge_index, edge_index_to_mask, num_nodes):
+    assert edge_set(edge_index) >= edge_set(edge_index_to_mask), "'edge_index' must be a superset of 'edge_index_to_mask'"
+
     # Mask matrix in the same shape as adjacency matrix. Describes which edges are masked as 'True'
     M = torch.zeros((num_nodes, num_nodes), dtype=torch.bool, device=edge_index.device)
     M[edge_index_to_mask.split(1)] = True

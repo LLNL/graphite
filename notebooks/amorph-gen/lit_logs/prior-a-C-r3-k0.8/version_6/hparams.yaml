@@ -1,0 +1,6 @@
+dim: 200
+ema_decay: 0.999
+learn_rate: 0.001
+num_convs: 5
+num_species: 1
+out_dim: 3

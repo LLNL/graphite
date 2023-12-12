@@ -2,34 +2,24 @@ import torch
 from torch import tensor as t
 
 
-# def coord2index(coord, shape):
-#     cumprod = torch.cat([t([1]), shape[:-1].cumprod(dim=0)])
-#     return cumprod.dot(coord)
+def periodic_radius_graph_bruteforce(pos, cutoff, cell, inv_cell=None):
+    """Computes graph edges based on a cutoff radius for point cloud data with periodic boundaries.
+    Returns the edge indices and the edge vectors.
 
-
-# def coords2indices(coords, shape):
-#     cumprod = torch.cat([t([1]), shape[:-1].cumprod(dim=0)])
-#     return (cumprod*coords).sum(dim=-1)
-
-
-# def connect_neighbors(cells, c1, c2, s, pos, box, ii, jj):
-#     # Look up atoms in center cell `c1` and those in neighbor cells `c2` (plural),
-#     # connect all atom pairs and compute the edge vectors.
-#     i = cells[c1].unsqueeze(0).expand(len(c2), -1)
-#     j = cells[c2]
-#     i = torch.take_along_dim(i, ii[None, :], dim=-1)
-#     j = torch.take_along_dim(j, jj[None, :], dim=-1)
-#     v = (pos[j] + s.unsqueeze(1)*box) - pos[i]
-
-#     i, j, v = i.reshape(-1), j.reshape(-1), v.reshape(-1, pos.size(1))
-
-#     # Remove superfluous pairs with atom index -1
-#     mask = torch.logical_and(i != -1, j != -1)
-#     return i[mask], j[mask], v[mask]
-
-
-# def neighbor_cell_coords(coord):
-#     return torch.cartesian_prod(*(torch.arange(n-1, n+2) for n in coord))
+    Although bruteforce, this implementation is very quick for small scale data.
+    """
+    if not isinstance(cell, torch.Tensor):
+        cell = torch.tensor(cell, dtype=torch.float, device=pos.device)
+    if inv_cell is None:
+        inv_cell = torch.linalg.pinv(cell)
+    
+    vec = pos[None,:,:] - pos[:,None,:]
+    vec = vec - torch.round(vec @ inv_cell) @ cell
+    dist = torch.linalg.norm(vec, dim=-1)
+    edge_index = torch.nonzero(torch.logical_and(dist>0, dist<=cutoff)).T
+    i, j = edge_index
+    vec = vec[i, j]
+    return edge_index, vec
 
 
 def wrap_cell_coord(coord, shape):

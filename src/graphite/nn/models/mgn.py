@@ -76,25 +76,6 @@ class Processor(nn.Module):
         return h_node, h_edge
 
 
-class Processor_dpm(nn.Module):
-    """MeshGraphNets Processor for diffusion model, with additional time embedding.
-    """
-    def __init__(self, num_convs, node_dim, edge_dim):
-        super().__init__()
-        self.num_convs = num_convs
-        self.node_dim = node_dim
-        self.edge_dim = edge_dim
-        self.convs = nn.ModuleList(
-            [copy.deepcopy(MeshGraphNetsConv(node_dim, edge_dim)) for _ in range(num_convs)]
-        )
-
-    def forward(self, h_node:Tensor, edge_index:Tensor, h_edge:Tensor, h_time:Tensor) -> Tuple[Tensor, Tensor]:
-        for conv in self.convs:
-            h_node += h_time
-            h_node, h_edge = conv(h_node, edge_index, h_edge)
-        return h_node, h_edge
-
-
 class Decoder(nn.Module):
     """MeshGraphNets Decoder.
     """
@@ -126,7 +107,7 @@ class MeshGraphNets(nn.Module):
 class MeshGraphNets_dpm(MeshGraphNets):
     """Time-dependent MeshGraphNets for diffusion model.
     """
-    def forward(self, x:Tensor, edge_index:Tensor, edge_attr:Tensor, t:Tensor, sigma:Tensor) -> Tensor:
+    def forward(self, x:Tensor, edge_index:Tensor, edge_attr:Tensor, t:Tensor) -> Tensor:
         h_node, h_edge = self.encoder(x, edge_attr, t)
         h_node, h_edge = self.processor(h_node, edge_index, h_edge)
-        return self.decoder(h_node) / sigma
+        return self.decoder(h_node)

@@ -4,7 +4,7 @@ import torch.nn as nn
 from e3nn       import o3
 from e3nn.nn    import Gate
 
-from ..conv.e3nn_nequip_interaction import Interaction
+from ..conv.e3nn_nequip import Interaction
 
 
 def tp_path_exists(irreps_in1, irreps_in2, ir_out):

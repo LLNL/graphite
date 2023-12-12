@@ -30,3 +30,17 @@ def jensen_shannon(input, target, reduction='batchmean', eps=1e-5):
     loss = 0.5 * F.kl_div(M, P, reduction=reduction) \
          + 0.5 * F.kl_div(M, Q, reduction=reduction)
     return loss.sqrt()
+
+
+def chamfer_distance(x, y, batch_x=None, batch_y=None, num_workers=1):
+    """ Compute the (asymmetric) Chamfer distance between two sets of point clouds.
+    This is based on PyG's K nearest neighbor code.
+    """
+    from torch_geometric.nn import knn
+    from torch_geometric.utils import scatter
+
+    i, j = knn(x, y, k=1, batch_x=batch_x, batch_y=batch_y, num_workers=num_workers)
+    dist = (y[j] - x[i]).norm(dim=1)
+    if batch_x is not None:
+        dist = scatter(dist, index=batch_x, dim=0, reduce='mean')
+    return dist.mean()

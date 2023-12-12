@@ -18,9 +18,17 @@ A repository for implementing graph network models based on atomic structures.
 - MeshGraphNets
     - [*Learning Mesh-Based Simulation with Graph Networks*][MGN paper]
 - **Score dynamics** (our work, see [demo](notebooks/score-dynamics/demo.ipynb))
+- **Spectroscopy-guided generation of amorphous structures** (our work, see [demo](notebooks/amorph-gen/amorph-gen.ipynb))
 
 
 ## Gallery
+
+### Spectroscopy-guided amorphous material generation
+
+This animation shows unconditional generation of amorphous carbons. Color is meant to help give you a sense of depth.
+
+![](/media/amorph-gen/a-C-denoise-traj-d15.gif)
+
 
 ### Score dynamics
 
@@ -33,8 +41,8 @@ Generative rollouts of molecular dynamics over picosecond timesteps via conditio
 
 Simple and effective atomic denoiser for structure characterization.
 
-![](/media/denoiser/denoising-fcc-2d.gif)
-![](/media/denoiser/denoising-fcc-3d.gif)
+<img src="/media/denoiser/denoising-fcc-2d.gif" width="512">
+<img src="/media/denoiser/denoising-fcc-3d.gif" width="512">
 
 
 ## Installation
