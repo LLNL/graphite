@@ -4,7 +4,11 @@ import torch.nn as nn
 from e3nn       import o3
 from e3nn.nn    import Gate
 
-from ..conv.e3nn_nequip import Interaction
+from ..convs.e3nn_nequip import Interaction
+
+# Typing
+from torch import Tensor
+from typing import List, Optional, Tuple
 
 
 def tp_path_exists(irreps_in1, irreps_in2, ir_out):
@@ -34,25 +38,8 @@ class Compose(nn.Module):
 
 class NequIP(nn.Module):
     """NequIP model from https://arxiv.org/pdf/2101.03164.pdf.
-
-    Args:
-        init_embed (function): Initial embedding function/class for nodes and edges.
-        irreps_node_x (Irreps or str): Irreps of input node features.
-        irreps_node_z (Irreps or str): Irreps of auxiliary node features (not updated throughout model).
-        irreps_hidden (Irreps or str): Irreps of node features at hidden layers.
-        irreps_edge (Irreps or str): Irreps of spherical_harmonics.
-        irreps_out (Irreps or str): Irreps of output node features.
-        num_convs (int): Number of interaction/conv layers. Must be more than 1.
-        radial_neurons (list of ints): Number of neurons per layers in the MLP that learns from bond distances.
-            For first and hidden layers, not the output layer.
-        max_radius (float): Cutoff radius used during graph construction.
-        num_neighbors (float): Typical or average node degree (used for normalization).
-    
-    Notes:
-        The `init_embed` function/class must take a PyG graph object `data` as input and output the same object
-        with the additional fields `h_node_x`, `h_node_z`, and `h_edge` that correspond to the node, auxilliary node,
-        and edge embeddings.
     """
+    
     def __init__(self,
         init_embed,
         irreps_node_x  = '8x0e',
@@ -64,6 +51,25 @@ class NequIP(nn.Module):
         radial_neurons = [16, 64],
         num_neighbors  = 12,
     ):
+        """
+        Args:
+            init_embed (function): Initial embedding function/class for nodes and edges.
+            irreps_node_x (Irreps or str): Irreps of input node features.
+            irreps_node_z (Irreps or str): Irreps of auxiliary node features (not updated throughout model).
+            irreps_hidden (Irreps or str): Irreps of node features at hidden layers.
+            irreps_edge (Irreps or str): Irreps of spherical_harmonics.
+            irreps_out (Irreps or str): Irreps of output node features.
+            num_convs (int): Number of interaction/conv layers. Must be more than 1.
+            radial_neurons (list of ints): Number of neurons per layers in the MLP that learns from bond distances.
+                For first and hidden layers, not the output layer.
+            max_radius (float): Cutoff radius used during graph construction.
+            num_neighbors (float): Typical or average node degree (used for normalization).
+
+        Notes:
+            The `init_embed` function/class must take a PyG graph object `data` as input and output the same object
+            with the additional fields `h_node_x`, `h_node_z`, and `h_edge` that correspond to the node, auxilliary node,
+            and edge embeddings.
+        """
         super().__init__()
         self.init_embed     = init_embed
         self.irreps_node_x  = o3.Irreps(irreps_node_x)

@@ -3,8 +3,8 @@ from torch import nn
 import copy
 
 from ..mlp import MLP
+from ..convs import MGNTransformerConv
 from ..basis import GaussianRandomFourierFeatures
-from ..conv import MGNTransformerConv
 
 # Typing
 from torch import Tensor
@@ -48,7 +48,7 @@ class Encoder_dpm(nn.Module):
         h_edge = self.embed_edge(edge_attr)
         
         # Add time embedding to node embedding
-        h_node += self.embed_time(t)
+        h_node = h_node + self.embed_time(t)
         return h_node, h_edge
 
 

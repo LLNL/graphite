@@ -1,31 +1,30 @@
 import torch
 from torch import nn
-import math
 from torch_geometric.utils import scatter
+import math
+
+from ..mlp import MLP
 from ..utils import graph_softmax
 
 # Typing
 from torch import Tensor
 from typing import List, Optional, Tuple
 
-from ..mlp import MLP
-
 
 class EdgeProcessor(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim: int) -> None:
         super().__init__()
         self.edge_mlp = nn.Sequential(MLP([dim*3, dim, dim, dim], act=nn.SiLU()), nn.LayerNorm(dim))
 
     def forward(self, x:Tensor, edge_index:Tensor, edge_attr:Tensor) -> Tensor:
         i = edge_index[0]
         j = edge_index[1]
-        out  = self.edge_mlp(torch.cat([x[i], x[j], edge_attr], dim=-1))
-        out += edge_attr
-        return out
+        out = self.edge_mlp(torch.cat([x[i], x[j], edge_attr], dim=-1))
+        return edge_attr + out
 
 
 class EdgeToNodeAttention(nn.Module):
-    def __init__(self, dim, num_heads, cutoff):
+    def __init__(self, dim: int, num_heads: int, cutoff: float) -> None:
         super().__init__()
         self.dim       = dim
         self.num_heads = num_heads
@@ -51,14 +50,14 @@ class EdgeToNodeAttention(nn.Module):
         d_k = self.dim // self.num_heads
         query, key, value = [x.view(-1, self.num_heads, d_k) for x in (query, key, value)]
         scores = (query * key).sum(dim=-1) / math.sqrt(d_k)
-        alpha = graph_softmax(scores, index=j, num_nodes=x.size(0))
+        alpha = graph_softmax(scores, index=j, dim_size=x.size(0))
         attn_out = (alpha[..., None] * value * phi_cutoff[..., None]).view(-1, self.dim)
         attn_out = scatter(attn_out, index=j, dim=0, dim_size=x.size(0))
         return self.lin_O(attn_out)
 
 
 class TransformerLayer(nn.Module):
-    def __init__(self, dim, num_heads, ff_dim, cutoff):
+    def __init__(self, dim: int, num_heads: int, ff_dim: int, cutoff: float) -> None:
         super().__init__()
         self.dim       = dim
         self.num_heads = num_heads
@@ -79,7 +78,7 @@ class TransformerLayer(nn.Module):
 
 
 class MGNTransformerConv(nn.Module):
-    def __init__(self, dim, ff_dim, num_heads, cutoff):
+    def __init__(self, dim: int, ff_dim: int, num_heads: int, cutoff: float) -> None:
         super().__init__()
         self.dim       = dim
         self.ff_dim    = ff_dim
@@ -93,5 +92,5 @@ class MGNTransformerConv(nn.Module):
         x         = self.node_processor(x, edge_index, edge_attr, edge_len)
         return x, edge_attr
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}(dim={self.dim}, ff_dim={self.ff_dim}, num_heads={self.num_heads}, cutoff={self.cutoff})'
+    def extra_repr(self) -> str:
+        return f'dim={self.dim}, ff_dim={self.ff_dim}, num_heads={self.num_heads}, cutoff={self.cutoff}'

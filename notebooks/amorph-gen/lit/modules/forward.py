@@ -1,20 +1,39 @@
 import torch
 import numpy as np
-import lightning.pytorch as pl
+
+# Typing
+from torch import Tensor
+from typing import List, Tuple, Optional
 
 ####################### Model #######################
 
-from torch import nn, Tensor
+from torch import nn
 from graphite.nn import MLP
 
+class Encoder(nn.Module):
+    def __init__(self, init_node_dim: int, init_edge_dim: int, node_dim: int, edge_dim: int) -> None:
+        super().__init__()
+        self.init_node_dim = init_node_dim
+        self.init_edge_dim = init_edge_dim
+        self.node_dim = node_dim
+        self.edge_dim = edge_dim
+
+        self.embed_node = nn.Sequential(MLP([init_node_dim, node_dim, node_dim], act=nn.SiLU()), nn.LayerNorm(node_dim))
+        self.embed_edge = nn.Sequential(MLP([init_edge_dim, edge_dim, edge_dim], act=nn.SiLU()), nn.LayerNorm(edge_dim))
+    
+    def forward(self, x: Tensor, edge_attr: Tensor) -> Tuple[Tensor, Tensor]:
+        h_node = self.embed_node(x)
+        h_edge = self.embed_edge(edge_attr)
+        return h_node, h_edge
+
 class XANESDecoder(nn.Module):
-    def __init__(self, node_dim, out_dim):
+    def __init__(self, node_dim: int, out_dim: int) -> None:
         super().__init__()
         self.node_dim = node_dim
         self.out_dim = out_dim
         self.decoder = MLP([node_dim, node_dim, out_dim], act=nn.SiLU())
     
-    def forward(self, h_node:Tensor) -> Tensor:
+    def forward(self, h_node: Tensor) -> Tensor:
         out = self.decoder(h_node)
         return torch.nn.functional.softplus(out)
 
@@ -30,13 +49,13 @@ class XANESMeshGraphNets(nn.Module):
         h_node, h_edge = self.processor(h_node, edge_index, h_edge)
         return self.decoder(h_node)
 
-
 ####################### LightningModule #######################
 
-from graphite.nn.models.mgn import Encoder, Processor, MeshGraphNets
+import lightning as L
+from graphite.nn.models.mgn import Processor
 
-class LitXANESNet(pl.LightningModule):
-    def __init__(self, num_species, num_convs, dim, out_dim, ema_decay=0.999, learn_rate=1e-4):
+class LitXANESNet(L.LightningModule):
+    def __init__(self, num_species: int, num_convs: int, dim: int, out_dim: int, ema_decay: float = 0.999, learn_rate: float = 1e-4) -> None:
         super().__init__()
         self.save_hyperparameters()
         

@@ -11,23 +11,37 @@ A repository for implementing graph network models based on atomic structures.
     - [*Efficient and interpretable graph network representation for angle-dependent properties applied to optical spectroscopy*][ALIGNN-d paper]
 - Gated GCN
     - [*Benchmarking Graph Neural Networks*][Gated GCN paper]
-- NequIP (code implementation adopted from `e3nn`)
+- NequIP (implementation adopted from `e3nn`; requires `e3nn` installation)
     - [*E(3)-Equivariant Graph Neural Networks for Data-Efficient and Accurate Interatomic Potentials*][NequIP paper]
 - **Atomic Structure denoiser** (our work, see [demo](notebooks/denoiser/demo.ipynb))
     - [*Score-based denoising for atomic structure identification*][Denoiser paper]
 - MeshGraphNets
     - [*Learning Mesh-Based Simulation with Graph Networks*][MGN paper]
 - **Score dynamics** (our work, see [demo](notebooks/score-dynamics/demo.ipynb))
+    - [*Score dynamics: scaling molecular dynamics with picoseconds time steps via conditional diffusion model*][SD paper]
 - **Spectroscopy-guided generation of amorphous structures** (our work, see [demo](notebooks/amorph-gen/amorph-gen.ipynb))
+    - [*Spectroscopy-guided discovery of three-dimensional structures of disordered materials with diffusion models*][a-C paper]
+- Equivariant transformer
+    - [*Equivariant pretrained transformer for unified geometric learning on multi-domain 3D molecules*][ET paper]
+- Graphormer
+    - [*Towards predicting equilibrium distributions for molecular systems with deep learning*][Graphormer paper]
 
 
 ## Gallery
 
 ### Spectroscopy-guided amorphous material generation
 
-This animation shows unconditional generation of amorphous carbons. Color is meant to help give you a sense of depth.
+Unconditional generation of amorphous carbons via diffusion model. Color is meant to help give you a sense of depth.
 
 ![](/media/amorph-gen/a-C-denoise-traj-d15.gif)
+
+Conditional generation of amorphous carbons based on a given XANES spectrum.
+
+![](/media/amorph-gen/a-C_generation-with_plot.gif)
+
+Generation of multi-element, amorphous carbon nitrides.
+
+![](/media/amorph-gen/a-C-N-denoise.gif)
 
 
 ### Score dynamics
@@ -50,31 +64,33 @@ Simple and effective atomic denoiser for structure characterization.
 The installation time is typically less than 10 minutes on a normal local machine.
 
 Installation dependencies:
-- PyTorch (`pytorch>=1.8.1`)
-- PyTorch-Geometric (`pyg>=2.0.1`): for graph data format processing and batching.
-- [Optional] Atomic Simulation Environment (`ase`): for reading/writing atomic structures and efficient neighbor list algorithm.
-- [Optional] Euclidean neural networks (`e3nn>=0.4.4`): dependency for the NequIP models.
+- `pytorch>=2.0.1`
+- `torch_geometric`
+- `torch-scatter`
+- `torch-cluster`
 
-An example for the installation process:
+Reasons: many model implementations in this repo are written mostly based on PyTorch, but some operations such as `scatter` and graph pooling are from PyTorch Geometric (PyG), which offers very optimized CUDA implementations. Additionally, most models in this repo treat atomic/molecular data as graphs following the PyG data format (`torch_geometric.data.Data`).
+
+Also, this repo has scattering (via `Torch.scatter_reduce`) and clustering (e.g., `radius_graph` and `knn_graph`) codes such that `torch-scatter` and `torch-cluster` are not strictly required. Still, it is recommended to install `torch-scatter` and `torch-cluster` if you favor CUDA-optimized compute speed.
+
+Lastly, for development purposes, you may want to install packages such as `ase`, `MDAnalysis`, `rdkit`, `lightning`, etc.
+
+Example installation process:
 ```bash
 conda create -n graphite
 conda activate graphite
-conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-conda install pyg -c pyg
+conda install pytorch pytorch-cuda=12.1 -c pytorch -c nvidia
+pip install torch_geometric
+pip install torch_scatter torch_cluster -f https://data.pyg.org/whl/torch-2.3.0+cu121.html
 
-# Optional install dependency, but required for some of the model implementations
-pip install ase e3nn
-
-# Other useful packages for development (optional)
-pip install jupyterlab ipywidgets seaborn lightning tensorboard MDAnalysis
+# For development depending on your use case
+pip install ase jupyterlab ipywidgets seaborn lightning tensorboard
 ```
 
 Then, to install `graphite`, clone this repo and run:
 ```bash
 pip install -e /path/to/the/repo
 ```
-
-The `-e` option signifies an [editable install](https://pip.pypa.io/en/stable/topics/local-project-installs/), which is well suited for development; this allows you to edit the source code without having to re-install.
 
 To uninstall:
 ```bash
@@ -84,11 +100,13 @@ pip uninstall graphite
 
 ## How to use
 
-`graphite` is intended to be a general collection of codes (e.g., helper functions, custom graph convolutions, and template graph models) for research purposes. Production codes for certain applications and deployments should be hosted elsewhere.
+`graphite` is intended for research and prototyping. It is a general collection of simple codes containing helper functions, custom graph convolutions, model templates, and so on. Full-scale production codes for specific applications and deployments should be hosted elsewhere.
 
 - The `src` folder contains the source code.
 - The `notebooks` folder contains Jupyter notebooks that demonstrate running or training models.
-    - Some demos require additional packages (e.g., PyTorch Lightning for automated training). Please see Installation and the instructions in the demos.
+    - Some demos require additional packages (e.g., PyTorch Lightning for automated training).
+    - The demo notebooks are not always up-to-date. We will try to update the notebooks after every major change to the source code.
+- The `media` folder contains media files.
 
 
 ## Release
@@ -103,7 +121,10 @@ LLNL-CODE-836648
 [e3nn basic conv doc]: https://docs.e3nn.org/en/stable/guide/convolution.html
 [NequIP paper]: https://www.nature.com/articles/s41467-022-29939-5
 [e3nn transformer doc]: https://docs.e3nn.org/en/stable/guide/transformer.html
-[PyG dataset doc]: https://pytorch-geometric.readthedocs.io/en/latest/notes/create_dataset.html
 [Denoiser paper]: https://arxiv.org/abs/2212.02421
 [MGN paper]: https://arxiv.org/abs/2010.03409v4
+[ET paper]: https://arxiv.org/abs/2402.12714
+[Graphormer paper]: https://arxiv.org/abs/2306.05445
+[SD paper]: https://pubs.acs.org/doi/10.1021/acs.jctc.3c01361
+[a-C paper]: https://arxiv.org/abs/2312.05472
 

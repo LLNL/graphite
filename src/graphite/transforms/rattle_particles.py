@@ -37,5 +37,5 @@ class RattleParticles(BaseTransform):
         data.eps   = eps
         return data
     
-    def __repr__(self):
-        return f'{self.__class__.__name__}(sigma_min={self.sigma_min}, sigma_max={self.sigma_max})'
+    def extra_repr(self) -> None:
+        return f'sigma_min={self.sigma_min}, sigma_max={self.sigma_max}'

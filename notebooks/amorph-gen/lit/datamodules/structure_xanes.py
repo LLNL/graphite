@@ -10,7 +10,7 @@ from torch_geometric.data import Data, Dataset
 from sklearn.preprocessing import OneHotEncoder
 from scipy.spatial.transform import Rotation
 
-from graphite.nn import periodic_radius_graph_bruteforce
+from graphite.nn import periodic_radius_graph
 from graphite.diffusion import VarianceExplodingDiffuser
 
 class StructureXANESDataset(Dataset):
@@ -51,7 +51,7 @@ class StructureXANESDataset(Dataset):
             data = Data(
                 z          = torch.tensor(z,               dtype=torch.float),
                 pos        = torch.tensor(atoms.positions, dtype=torch.float),
-                y          = torch.tensor(xanes*scale_y,       dtype=torch.float),
+                y          = torch.tensor(xanes*scale_y,   dtype=torch.float),
                 train_mask = torch.rand(len(z)) < train_size,
                 cell       = np.array(atoms.cell),
             )
@@ -78,7 +78,8 @@ class StructureXANESDataset(Dataset):
         return data
     
     def _atomic_graph(self, data, cutoff):
-        data.edge_index, edge_vec = periodic_radius_graph_bruteforce(pos=data.pos, cutoff=cutoff, cell=data.cell)
+        cell = torch.tensor(data.cell, dtype=torch.float)
+        data.edge_index, edge_vec = periodic_radius_graph(data.pos, cutoff, cell=cell)
         data.edge_len = edge_vec.norm(dim=-1, keepdim=True)
         data.edge_attr = torch.hstack([edge_vec, data.edge_len])
         return data

@@ -3,9 +3,14 @@ from torch import nn
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import scatter
 
+# Typing
+from torch import Tensor
+from typing import List, Optional, Tuple
+
 
 class GatedGCN(MessagePassing):
     """Gated GCN, also known as edge-gated convolution.
+    
     Reference: https://arxiv.org/abs/2003.00982
     
     Different from the original version, in this version, the activation function is SiLU,
@@ -13,7 +18,7 @@ class GatedGCN(MessagePassing):
 
     This implementation concatenates the `x_i`, `x_j`, and `e_ij` feature vectors during the edge update.
     """
-    def __init__(self, node_dim, edge_dim, epsilon=1e-5):
+    def __init__(self, node_dim: int, edge_dim: int, epsilon: float = 1e-5) -> None:
         super().__init__(aggr='add')
         self.W_src  = nn.Linear(node_dim, node_dim)
         self.W_dst  = nn.Linear(node_dim, node_dim)
@@ -26,12 +31,12 @@ class GatedGCN(MessagePassing):
 
         self.reset_parameters()
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
         torch.nn.init.xavier_uniform_(self.W_src.weight); self.W_src.bias.data.fill_(0)
         torch.nn.init.xavier_uniform_(self.W_dst.weight); self.W_dst.bias.data.fill_(0)
         torch.nn.init.xavier_uniform_(self.W_e.weight);   self.W_e.bias.data.fill_(0)
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor) -> Tuple[Tensor, Tensor]:
         i, j = edge_index
 
         # Calculate gated edges
@@ -50,12 +55,13 @@ class GatedGCN(MessagePassing):
 
         return out, edge_attr
 
-    def message(self, x_j, e_gated):
+    def message(self, x_j: Tensor, e_gated: Tensor) -> Tensor:
         return e_gated * self.W_dst(x_j)
 
 
 class GatedGCN_v2(MessagePassing):
     """Gated GCN, also known as edge-gated convolution.
+    
     Reference: https://arxiv.org/abs/2003.00982
 
     Different from the original version, in this version, the activation function is SiLU,
@@ -63,7 +69,7 @@ class GatedGCN_v2(MessagePassing):
 
     This implementation is closer to the original formulation (without the concatenation).
     """
-    def __init__(self, node_dim, edge_dim, epsilon=1e-5):
+    def __init__(self, node_dim: int, edge_dim: int, epsilon: float = 1e-5) -> None:
         super().__init__(aggr='add')
         self.W_src  = nn.Linear(node_dim, node_dim)
         self.W_dst  = nn.Linear(node_dim, node_dim)
@@ -78,14 +84,14 @@ class GatedGCN_v2(MessagePassing):
 
         self.reset_parameters()
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
         torch.nn.init.xavier_uniform_(self.W_src.weight); self.W_src.bias.data.fill_(0)
         torch.nn.init.xavier_uniform_(self.W_dst.weight); self.W_dst.bias.data.fill_(0)
         torch.nn.init.xavier_uniform_(self.W_A.weight);   self.W_A.bias.data.fill_(0)
         torch.nn.init.xavier_uniform_(self.W_B.weight);   self.W_B.bias.data.fill_(0)
         torch.nn.init.xavier_uniform_(self.W_C.weight);   self.W_C.bias.data.fill_(0)
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor) -> Tuple[Tensor, Tensor]:
         i, j = edge_index
 
         # Calculate gated edges
@@ -105,5 +111,5 @@ class GatedGCN_v2(MessagePassing):
 
         return out, edge_attr
 
-    def message(self, x_j, e_gated):
+    def message(self, x_j: Tensor, e_gated: Tensor) -> Tensor:
         return e_gated * self.W_dst(x_j)

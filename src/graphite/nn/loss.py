@@ -2,6 +2,10 @@ import torch
 import torch.nn.functional as F
 import torch.autograd as autograd
 
+# Typing
+from torch import Tensor
+from typing import List, Optional, Tuple
+
 
 # Adopted from https://github.com/ermongroup/sliced_score_matching
 def sliced_score_estimation(score_net, data):
@@ -19,21 +23,20 @@ def sliced_score_estimation(score_net, data):
     return (loss1 + loss2).mean()
 
 
-def jensen_shannon(input, target, reduction='batchmean', eps=1e-5):
-    """Compute the square root of the Jensen-Shannon divergence.
-    `input` and `target` are assumed to be BxD tensors, where B is the batch dimension,
+def jensen_shannon(input: Tensor, target: Tensor, reduction: str = 'batchmean', eps: float = 1e-5) -> Tensor:
+    """Computes the square root of the Jensen-Shannon divergence.
+    'input' and 'target' are assumed to be (B, D) tensors, where B is the batch dimension,
     and D is the feature dimension.
     """
     P, Q = input+eps, target+eps
     P, Q = P/P.sum(-1), Q/Q.sum(-1)
     M = ((P+Q)/2).log()
-    loss = 0.5 * F.kl_div(M, P, reduction=reduction) \
-         + 0.5 * F.kl_div(M, Q, reduction=reduction)
+    loss = 0.5 * F.kl_div(M, P, reduction=reduction) + 0.5 * F.kl_div(M, Q, reduction=reduction)
     return loss.sqrt()
 
 
-def chamfer_distance(x, y, batch_x=None, batch_y=None, num_workers=1):
-    """ Compute the (asymmetric) Chamfer distance between two sets of point clouds.
+def chamfer_distance(x: Tensor, y: Tensor, batch_: Optional[Tensor] = None, batch_y: Optional[Tensor] = None, num_workers: int = 1) -> Tensor:
+    """ Computes the (asymmetric) Chamfer distance between two sets of point clouds.
     This is based on PyG's K nearest neighbor code.
     """
     from torch_geometric.nn import knn

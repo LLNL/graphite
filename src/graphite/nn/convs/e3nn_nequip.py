@@ -1,35 +1,36 @@
 import torch
+from torch import nn
 from torch_geometric.utils import scatter
 
 from e3nn      import o3
 from e3nn.nn   import FullyConnectedNet
 
+# Typing
+from torch import Tensor
+from typing import List, Optional, Tuple
 
-class Interaction(torch.nn.Module):
-    """Equivariant `Interaction` layer from NequIP.
+
+class Interaction(nn.Module):
+    """NequIP equivariant interaction/convolution layer.
+    
     References:
     - https://arxiv.org/pdf/2101.03164.pdf
     - https://docs.e3nn.org/en/stable/api/nn/models/gate_points_2101.html
     - https://github.com/e3nn/e3nn/tree/0.4.4/e3nn/nn/models/v2106.
     - https://github.com/mir-group/nequip/blob/main/nequip/nn/_interaction_block.py
-
-    Args:
-        irreps_in (Irreps or str): Irreps of input node features.
-        irreps_node (Irreps or str): Irreps of node attributes (constant throughout model).
-        irreps_edge (Irreps or str): Irreps of edge spherical harmonics (constant througout model).
-        irreps_out (Irreps or str): Irreps of output node features.
-        radial_neurons (list of ints): Number of neurons per layers in the radial MLP.
-            For first and hidden layers, not the output layer.
-        num_neighbors (float): Typical or averaged node degree (used for normalization).
     """
     def __init__(self,
-        irreps_in,
-        irreps_node,
-        irreps_edge,
-        irreps_out,
-        radial_neurons = [16, 64],
-        num_neighbors  = 1,
-    ):
+        irreps_in, irreps_node, irreps_edge, irreps_out, radial_neurons=[16, 64], num_neighbors=1):
+        """
+        Args:
+            irreps_in (Irreps or str): Irreps of input node features.
+            irreps_node (Irreps or str): Irreps of node attributes (constant throughout model).
+            irreps_edge (Irreps or str): Irreps of edge spherical harmonics (constant througout model).
+            irreps_out (Irreps or str): Irreps of output node features.
+            radial_neurons (list of ints): Number of neurons per layers in the radial MLP.
+                For first and hidden layers, not the output layer.
+            num_neighbors (float): Typical or averaged node degree (used for normalization).
+        """
         super().__init__()
 
         self.irreps_in     = o3.Irreps(irreps_in)

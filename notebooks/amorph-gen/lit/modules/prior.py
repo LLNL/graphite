@@ -1,10 +1,40 @@
 import torch
 import numpy as np
-import lightning.pytorch as pl
+
+# Typing
+from torch import Tensor
+from typing import List, Tuple, Optional
 
 ####################### Model #######################
 
-from torch import nn, Tensor
+from torch import nn
+from graphite.nn import MLP
+from graphite.nn.basis import GaussianRandomFourierFeatures
+
+class Encoder_dpm(nn.Module):
+    def __init__(self, init_node_dim: int, init_edge_dim: int, node_dim: int, edge_dim: int) -> None:
+        super().__init__()
+        self.init_node_dim = init_node_dim
+        self.init_edge_dim = init_edge_dim
+        self.node_dim = node_dim
+        self.edge_dim = edge_dim
+
+        self.embed_node = nn.Sequential(MLP([init_node_dim, node_dim, node_dim], act=nn.SiLU()), nn.LayerNorm(node_dim))
+        self.embed_edge = nn.Sequential(MLP([init_edge_dim, edge_dim, edge_dim], act=nn.SiLU()), nn.LayerNorm(edge_dim))
+        self.embed_time = nn.Sequential(
+            GaussianRandomFourierFeatures(node_dim, input_dim=1),
+            MLP([node_dim, node_dim, node_dim], act=nn.SiLU()),
+            nn.LayerNorm(node_dim),
+        )
+
+    def forward(self, x: Tensor, edge_attr: Tensor, t: Tensor) -> Tuple[Tensor, Tensor]:
+        # Encode nodes and edges
+        h_node = self.embed_node(x)
+        h_edge = self.embed_edge(edge_attr)
+        
+        # Add time embedding to node embedding
+        h_node = h_node + self.embed_time(t)
+        return h_node, h_edge
 
 class ScoreModel(nn.Module):
     def __init__(self, encoder, processor, decoder):
@@ -20,9 +50,10 @@ class ScoreModel(nn.Module):
 
 ####################### LightningModule #######################
 
-from graphite.nn.models.mgn import Encoder_dpm, Processor, Decoder
+import lightning as L
+from graphite.nn.models.mgn import Processor, Decoder
 
-class LitScoreNet(pl.LightningModule):
+class LitScoreNet(L.LightningModule):
     def __init__(self, num_species, num_convs, dim, ema_decay, learn_rate):
         super().__init__()
         self.save_hyperparameters()

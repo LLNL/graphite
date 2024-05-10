@@ -1,6 +1,11 @@
 import torch
 from torch import nn
-from ..conv    import GatedGCN
+
+from ..convs import GatedGCN
+
+# Typing
+from torch import Tensor
+from typing import List, Optional, Tuple
 
 
 class GatedGCN_Net(torch.nn.Module):
