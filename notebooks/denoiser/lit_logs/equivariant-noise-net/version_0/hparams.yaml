@@ -1,0 +1,18 @@
+batch_size: 8
+cutoff: 3.2
+duplicate: 256
+edge_dim: 64
+ff_dim: 64
+file_list:
+- ./data/Cu/ideal-bcc.dump
+- ./data/Cu/ideal-fcc.dump
+- ./data/Cu/ideal-hcp.dump
+init_edge_dim: 1
+large_cutoff: 5.0
+learn_rate: 0.0001
+node_dim: 64
+num_heads: 4
+num_layers: 4
+num_species: 1
+num_workers: 4
+sigma_max: 0.3
