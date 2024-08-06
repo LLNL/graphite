@@ -26,16 +26,14 @@ class Encoder(nn.Module):
         self.phi_h = MLP([node_dim*2,            node_dim, node_dim], act=nn.SiLU())
         self.phi_v = MLP([node_dim*2 + edge_dim, node_dim, node_dim], act=nn.SiLU())
 
-    def forward(self, species: Tensor, pos: Tensor, edge_index: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+    def forward(self, species: Tensor, edge_index: Tensor, edge_attr: Tensor, edge_vec: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         num_nodes = len(species)
         i = edge_index[0]
         j = edge_index[1]
-        edge_vec = pos[j] - pos[i]
-        edge_len = torch.linalg.norm(edge_vec, dim=1, keepdim=True)
         
         # Embed node and edge features
         f         = self.embed_atom(species)
-        edge_attr = self.embed_bond(edge_len)
+        edge_attr = self.embed_bond(edge_attr)
 
         # Convolve node features
         e  = torch.cat([f[i], f[j], edge_attr], dim=-1)
@@ -45,6 +43,38 @@ class Encoder(nn.Module):
 
         # Initialize vector features
         v0 = scatter(edge_vec[:, None, :] * self.phi_v(e)[:, :, None], index=j, dim=0, dim_size=num_nodes)
+        return h0, v0, edge_attr
+
+
+class Encoder_dpm(Encoder):
+    def __init__(self, num_species: int, node_dim: int, init_edge_dim: int, edge_dim: int) -> None:
+        super().__init__()
+        self.embed_time = nn.Sequential(
+            GaussianRandomFourierFeatures(node_dim, input_dim=1),
+            MLP([node_dim, node_dim, node_dim], act=nn.SiLU()),
+        )
+
+    def forward(self, species: Tensor, edge_index: Tensor, edge_attr: Tensor, edge_vec: Tensor, t: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        num_nodes = len(species)
+        i = edge_index[0]
+        j = edge_index[1]
+
+        # Embed node and edge features
+        f         = self.embed_atom(species)
+        edge_attr = self.embed_bond(edge_attr)
+
+        # Convolve node features
+        e  = torch.cat([f[i], f[j], edge_attr], dim=-1)
+        h0 = self.phi_h(torch.cat([
+            f, scatter(self.phi_s(e) * f[i], index=j, dim=0, dim_size=num_nodes)
+        ], dim=-1))
+
+        # Initialize vector features
+        v0 = scatter(edge_vec[:, None, :] * self.phi_v(e)[:, :, None], index=j, dim=0, dim_size=num_nodes)
+        return h0, v0, edge_attr
+
+        # Add time embedding to node features
+        h0 = h0 + self.embed_time(t)
         return h0, v0, edge_attr
 
 
@@ -91,7 +121,14 @@ class EquivariantTransformer(nn.Module):
         self.processor = processor
         self.decoder   = decoder
     
-    def forward(self, species: Tensor, pos: Tensor, edge_index: Tensor) -> Tuple[Tensor, Tensor]:
-        h, v, edge_attr = self.encoder(species, pos, edge_index)
-        h, v = self.processor(h, v, edge_index, edge_len, edge_attr)
+    def forward(self, species: Tensor, edge_index: Tensor, edge_attr: Tensor, edge_vec: Tensor) -> Tuple[Tensor, Tensor]:
+        h, v, edge_attr = self.encoder(species, edge_index, edge_attr, edge_vec)
+        h, v = self.processor(h, v, edge_index, edge_attr, edge_len=torch.linalg.norm(edge_vec, dim=1, keepdim=True))
+        return self.decoder(h, v)
+
+
+class EquivariantTransformer_dpm(EquivariantTransformer):
+    def forward(self, species: Tensor, edge_index: Tensor, edge_attr: Tensor, edge_vec: Tensor, t: Tensor) -> Tuple[Tensor, Tensor]:
+        h, v, edge_attr = self.encoder(pecies, edge_index, edge_attr, edge_vec, t)
+        h, v = self.processor(h, v, edge_index, edge_attr, edge_len=torch.linalg.norm(edge_vec, dim=1, keepdim=True))
         return self.decoder(h, v)

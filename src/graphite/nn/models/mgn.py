@@ -30,18 +30,11 @@ class Encoder(nn.Module):
         return h_node, h_edge
 
 
-class Encoder_dpm(nn.Module):
+class Encoder_dpm(Encoder):
     """MeshGraphNets Encoder for diffusion model, with additional time encoding.
     """
     def __init__(self, init_node_dim: int, init_edge_dim: int, node_dim: int, edge_dim: int) -> None:
         super().__init__()
-        self.init_node_dim = init_node_dim
-        self.init_edge_dim = init_edge_dim
-        self.node_dim = node_dim
-        self.edge_dim = edge_dim
-
-        self.embed_node = MLP([init_node_dim, node_dim, node_dim], act=nn.SiLU())
-        self.embed_edge = MLP([init_edge_dim, edge_dim, edge_dim], act=nn.SiLU())
         self.embed_time = nn.Sequential(
             GaussianRandomFourierFeatures(node_dim, input_dim=1),
             MLP([node_dim, node_dim, node_dim], act=nn.SiLU()),

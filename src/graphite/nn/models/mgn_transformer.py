@@ -26,22 +26,6 @@ class Encoder(nn.Module):
         h_edge = self.embed_edge(edge_attr)
         return h_node, h_edge
 
-
-class Encoder_dpm(nn.Module):
-    def __init__(self, init_node_dim, init_edge_dim, dim):
-        super().__init__()
-        self.init_node_dim = init_node_dim
-        self.init_edge_dim = init_edge_dim
-        self.dim = dim
-
-        self.embed_node = nn.Sequential(MLP([init_node_dim, dim, dim], act=nn.SiLU()), nn.LayerNorm(dim))
-        self.embed_edge = nn.Sequential(MLP([init_edge_dim, dim, dim], act=nn.SiLU()), nn.LayerNorm(dim))
-        self.embed_time = nn.Sequential(
-            GaussianRandomFourierFeatures(dim, input_dim=1),
-            MLP([dim, dim, dim], act=nn.SiLU()),
-            nn.LayerNorm(dim),
-        )
-
     def forward(self, x:Tensor, edge_attr:Tensor, t:Tensor) -> Tuple[Tensor, Tensor]:
         # Encode nodes and edges
         h_node = self.embed_node(x)

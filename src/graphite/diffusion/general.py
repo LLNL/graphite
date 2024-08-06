@@ -31,7 +31,7 @@ class VariancePreservingDiffuser:
             self.g2    = lambda t: 1 - 2*self.f(t)*t
             self.g     = lambda t: self.g2(t)**0.5
 
-    def forward_noise(self, x: Tensor, t: Tensor, b: float =1.0):
+    def forward_noise(self, x: Tensor, t: Tensor, b: float = 1.0):
         alpha = self.alpha(t)
         sigma = self.sigma(t)
         eps = torch.randn_like(x)
@@ -39,7 +39,7 @@ class VariancePreservingDiffuser:
 
 
 class VarianceExplodingDiffuser:
-    def __init__(self, k: float  = 1.0, t_min: float  = 1e-3, t_max: float = 0.999) -> None:
+    def __init__(self, k: float  = 1.0, t_min: float = 1e-3, t_max: float = 0.999) -> None:
         self.t_min = t_min
         self.t_max = t_max
 
